@@ -533,8 +533,8 @@ vreader_remove_reader(VReader *reader)
     }
     vreader_dequeue(vreader_list, current_entry);
     vreader_list_unlock();
-    vreader_list_entry_delete(current_entry);
     vevent_queue_vevent(vevent_new(VEVENT_READER_REMOVE, reader, NULL));
+    vreader_list_entry_delete(current_entry);
     return VREADER_OK;
 }
 

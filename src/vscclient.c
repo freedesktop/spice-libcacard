@@ -49,14 +49,8 @@ print_byte_array(
 
 static void
 print_usage(void) {
-    printf("vscclient [-c <certname> .. -e <emul_args> -d <level>%s] "
-            "<host> <port>\n",
-#ifdef USE_PASSTHRU
-    " -p");
-    printf(" -p use passthrough mode\n");
-#else
-   "");
-#endif
+    printf("vscclient [-c <certname> .. -e <emul_args> -d <level>] "
+            "<host> <port>\n");
     vcard_emul_usage();
 }
 
@@ -684,7 +678,7 @@ main(
     }
 #endif
 
-    while ((c = getopt(argc, argv, "c:e:pd:")) != -1) {
+    while ((c = getopt(argc, argv, "c:e:d:")) != -1) {
         switch (c) {
         case 'c':
             if (cert_count >= MAX_CERTS) {
@@ -695,10 +689,6 @@ main(
             break;
         case 'e':
             emul_args = optarg;
-            break;
-        case 'p':
-            print_usage();
-            exit(4);
             break;
         case 'd':
             verbose = get_id_from_string(optarg, 1);

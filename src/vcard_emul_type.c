@@ -7,6 +7,7 @@
  * This work is licensed under the terms of the GNU LGPL, version 2.1 or later.
  * See the COPYING file in the top-level directory.
  */
+#include "config.h"
 
 #include <strings.h>
 #include "vcardt.h"
@@ -45,7 +46,7 @@ VCardEmulType vcard_emul_type_from_string(const char *type_string)
      if (strcasecmp(type_string, "CAC") == 0) {
         return VCARD_EMUL_CAC;
      }
-#ifdef USE_PASSTHRU
+#ifdef ENABLE_PCSC
      if (strcasecmp(type_string, "PASSTHRU") == 0) {
         return VCARD_EMUL_PASSTHRU;
      }

@@ -274,7 +274,7 @@ vcard_apdu_set_length(VCardAPDU *apdu)
             }
             /* calculate the first extended value. Could be either Le or Lc */
             Le = (apdu->a_header->ah_body[0] << 8)
-               || apdu->a_header->ah_body[1];
+                | apdu->a_header->ah_body[1];
             if (L == 3) {
                 /* 2E extended, return data only */
                 /*   zero maps to 65536 */
@@ -296,7 +296,7 @@ vcard_apdu_set_length(VCardAPDU *apdu)
             if (L == Le+5) {
                 /* 4E extended, parameters and return data */
                 Le = (apdu->a_data[apdu->a_len-2] << 8)
-                   || apdu->a_data[apdu->a_len-1];
+                    | apdu->a_data[apdu->a_len-1];
                 apdu->a_Le = Le ? Le : 65536;
                 return VCARD7816_STATUS_SUCCESS;
             }
@@ -661,7 +661,7 @@ vcard7816_vm_process_apdu(VCard *card, VCardAPDU *apdu,
                     }
                 }
             } else {
-                    status = vcard_emul_login(card, apdu->a_body, apdu->a_Lc);
+                status = vcard_emul_login(card, apdu->a_body, apdu->a_Lc);
                 *response = vcard_make_response(status);
             }
         }

@@ -203,6 +203,8 @@ vcard_emul_map_error(int error)
         return VCARD7816_STATUS_ERROR_DATA_INVALID;
     case SEC_ERROR_NO_MEMORY:
         return VCARD7816_STATUS_EXC_ERROR_MEMORY_FAILURE;
+    default:
+        g_warn_if_reached();
     }
     return VCARD7816_STATUS_EXC_ERROR_CHANGE;
 }
@@ -221,6 +223,7 @@ vcard_emul_rsa_op(VCard *card, VCardKey *key,
     int pad_len;
     vcard_7816_status_t ret = VCARD7816_STATUS_SUCCESS;
 
+    assert(buffer_size >= 0);
     if ((!nss_emul_init) || (key == NULL)) {
         /* couldn't get the key, indicate that we aren't logged in */
         return VCARD7816_STATUS_ERROR_CONDITION_NOT_SATISFIED;
@@ -236,7 +239,7 @@ vcard_emul_rsa_op(VCard *card, VCardKey *key,
      * this is only true of the rsa signature
      */
     signature_len = PK11_SignatureLen(priv_key);
-    if (buffer_size != signature_len) {
+    if ((unsigned)buffer_size != signature_len) {
         return  VCARD7816_STATUS_ERROR_DATA_INVALID;
     }
     /* be able to handle larger keys if necessariy */
@@ -256,7 +259,7 @@ vcard_emul_rsa_op(VCard *card, VCardKey *key,
         rv = PK11_PrivDecryptRaw(priv_key, bp, &signature_len, signature_len,
                                  buffer, buffer_size);
         if (rv == SECSuccess) {
-            assert(buffer_size == signature_len);
+            assert((unsigned)buffer_size == signature_len);
             memcpy(buffer, bp, signature_len);
             key->failedX509 = VCardEmulFalse;
             goto cleanup;
@@ -306,7 +309,7 @@ vcard_emul_rsa_op(VCard *card, VCardKey *key,
                 ret = vcard_emul_map_error(PORT_GetError());
                 goto cleanup;
             }
-            assert(buffer_size == signature.len);
+            assert((unsigned)buffer_size == signature.len);
             memcpy(buffer, bp, signature.len);
             /*
              * we got here because either the X509 attempt failed, or the

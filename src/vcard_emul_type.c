@@ -12,6 +12,7 @@
 #include "vcardt.h"
 #include "vcard_emul_type.h"
 #include "cac.h"
+#include "glib-compat.h"
 
 VCardStatus vcard_init(VReader *vreader, VCard *vcard,
                        VCardEmulType type, const char *params,
@@ -25,7 +26,9 @@ VCardStatus vcard_init(VReader *vreader, VCard *vcard,
         return cac_card_init(vreader, vcard, params,
                              cert, cert_len, key,  cert_count);
     /* add new ones here */
+    case VCARD_EMUL_PASSTHRU:
     default:
+        g_warn_if_reached();
         break;
     }
     return VCARD_FAIL;

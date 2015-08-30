@@ -187,6 +187,8 @@ vcard_response_delete(VCardResponse *response)
         break;
     case VCARD_STATIC:
         break;
+    default:
+        g_warn_if_reached();
     }
 }
 
@@ -750,6 +752,8 @@ vcard_process_apdu(VCard *card, VCardAPDU *apdu, VCardResponse **response)
         /* if we are type direct, then the applet should handle everything */
         assert(!"VCARD_DIRECT: applet failure");
         break;
+    default:
+        g_warn_if_reached();
     }
     *response =
         vcard_make_response(VCARD7816_STATUS_ERROR_COMMAND_NOT_SUPPORTED);

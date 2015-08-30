@@ -36,7 +36,7 @@ static int verbose;
 static void
 print_byte_array(
     uint8_t *arrBytes,
-    unsigned int nSize
+    int nSize
 ) {
     int i;
     for (i = 0; i < nSize; i++) {
@@ -224,6 +224,7 @@ event_thread(gpointer arg)
             }
             send_msg(VSC_CardRemove, reader_id, NULL, 0);
             break;
+        case VEVENT_LAST:
         default:
             break;
         }
@@ -299,8 +300,9 @@ do_socket_read(GIOChannel *source,
     VReaderStatus reader_status;
     VReader *reader = NULL;
     static VSCMsgHeader mhHeader;
-    VSCMsgError *error_msg;
+    VSCMsgError error_msg;
     GError *err = NULL;
+    VSCMsgInit init;
 
     static gchar *buf;
     static gsize br, to_read;
@@ -382,8 +384,8 @@ do_socket_read(GIOChannel *source,
             send_msg(VSC_FlushComplete, mhHeader.reader_id, NULL, 0);
             break;
         case VSC_Error:
-            error_msg = (VSCMsgError *) pbSendBuffer;
-            if (error_msg->code == VSC_SUCCESS) {
+            memcpy(&error_msg, pbSendBuffer, sizeof(VSCMsgError));
+            if (error_msg.code == VSC_SUCCESS) {
                 g_mutex_lock(&pending_reader_lock);
                 if (pending_reader) {
                     vreader_set_id(pending_reader, mhHeader.reader_id);
@@ -395,7 +397,7 @@ do_socket_read(GIOChannel *source,
                 break;
             }
             printf("warning: qemu refused to add reader\n");
-            if (error_msg->code == VSC_CANNOT_ADD_MORE_READERS) {
+            if (error_msg.code == VSC_CANNOT_ADD_MORE_READERS) {
                 /* clear pending reader, qemu can't handle any more */
                 g_mutex_lock(&pending_reader_lock);
                 if (pending_reader) {
@@ -407,7 +409,8 @@ do_socket_read(GIOChannel *source,
             }
             break;
         case VSC_Init:
-            if (on_host_init(&mhHeader, (VSCMsgInit *)pbSendBuffer) < 0) {
+            memcpy(&init, pbSendBuffer, sizeof(VSCMsgInit));
+            if (on_host_init(&mhHeader, &init) < 0) {
                 return FALSE;
             }
             break;
@@ -485,18 +488,18 @@ do_command(GIOChannel *source,
             printf("Active Readers:\n");
             for (reader_entry = vreader_list_get_first(list); reader_entry;
                  reader_entry = vreader_list_get_next(reader_entry)) {
-                VReader *reader = vreader_list_get_reader(reader_entry);
-                vreader_id_t reader_id;
-                reader_id = vreader_get_id(reader);
-                if (reader_id == -1) {
+                VReader *r = vreader_list_get_reader(reader_entry);
+                vreader_id_t id;
+                id = vreader_get_id(r);
+                if (id == (vreader_id_t)-1) {
                     continue;
                 }
                 /* be nice and signal card removal first (qemu probably should
                  * do this itself) */
-                if (vreader_card_is_present(reader) == VREADER_OK) {
-                    send_msg(VSC_CardRemove, reader_id, NULL, 0);
+                if (vreader_card_is_present(r) == VREADER_OK) {
+                    send_msg(VSC_CardRemove, id, NULL, 0);
                 }
-                send_msg(VSC_ReaderRemove, reader_id, NULL, 0);
+                send_msg(VSC_ReaderRemove, id, NULL, 0);
             }
             exit(0);
         } else if (strncmp(string, "insert", 6) == 0) {
@@ -549,31 +552,31 @@ do_command(GIOChannel *source,
             printf("Active Readers:\n");
             for (reader_entry = vreader_list_get_first(list); reader_entry;
                  reader_entry = vreader_list_get_next(reader_entry)) {
-                VReader *reader = vreader_list_get_reader(reader_entry);
-                vreader_id_t reader_id;
-                reader_id = vreader_get_id(reader);
-                if (reader_id == -1) {
+                VReader *r = vreader_list_get_reader(reader_entry);
+                vreader_id_t id;
+                id = vreader_get_id(r);
+                if (id == (vreader_id_t)-1) {
                     continue;
                 }
-                printf("%3u %s %s\n", reader_id,
-                       vreader_card_is_present(reader) == VREADER_OK ?
+                printf("%3u %s %s\n", id,
+                       vreader_card_is_present(r) == VREADER_OK ?
                        "CARD_PRESENT" : "            ",
-                       vreader_get_name(reader));
+                       vreader_get_name(r));
             }
             printf("Inactive Readers:\n");
             for (reader_entry = vreader_list_get_first(list); reader_entry;
                  reader_entry = vreader_list_get_next(reader_entry)) {
-                VReader *reader = vreader_list_get_reader(reader_entry);
-                vreader_id_t reader_id;
-                reader_id = vreader_get_id(reader);
-                if (reader_id != -1) {
+                VReader *r = vreader_list_get_reader(reader_entry);
+                vreader_id_t id;
+                id = vreader_get_id(reader);
+                if (id != (vreader_id_t)-1) {
                     continue;
                 }
 
                 printf("INA %s %s\n",
-                       vreader_card_is_present(reader) == VREADER_OK ?
+                       vreader_card_is_present(r) == VREADER_OK ?
                        "CARD_PRESENT" : "            ",
-                       vreader_get_name(reader));
+                       vreader_get_name(r));
             }
             vreader_list_delete(list);
         } else if (*string != 0) {
@@ -656,7 +659,7 @@ main(
     GIOChannel *channel_stdin;
     char *qemu_host;
     char *qemu_port;
-
+    VSCMsgInit init;
     VCardEmulOptions *command_line_options = NULL;
 
     char *cert_names[MAX_CERTS];
@@ -698,6 +701,8 @@ main(
         case 'd':
             verbose = get_id_from_string(optarg, 1);
             break;
+        default:
+            g_warn_if_reached();
         }
     }
 
@@ -766,7 +771,7 @@ main(
     g_io_channel_set_buffered(channel_socket, FALSE);
 
     /* Send init message, Host responds (and then we send reader attachments) */
-    VSCMsgInit init = {
+    init = (VSCMsgInit) {
         .version = htonl(VSCARD_VERSION),
         .magic = VSCARD_MAGIC,
         .capabilities = {0}

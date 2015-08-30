@@ -195,9 +195,9 @@ vcard_get_atr(VCard *vcard, unsigned char *atr, int *atr_len)
 }
 
 void
-vcard_set_atr_func(VCard *card, VCardGetAtr vcard_get_atr)
+vcard_set_atr_func(VCard *card, VCardGetAtr get_atr)
 {
-    card->vcard_get_atr = vcard_get_atr;
+    card->vcard_get_atr = get_atr;
 }
 
 

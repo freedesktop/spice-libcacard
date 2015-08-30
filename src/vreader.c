@@ -89,8 +89,9 @@ apdu_ins_to_string(int ins)
         return "sign decrypt";
     case CAC_GET_CERTIFICATE:
         return "get certificate";
+    default:
+        g_return_val_if_reached("unknown");
     }
-    return "unknown";
 }
 
 /* manage locking */
@@ -262,6 +263,7 @@ vreader_xfr_bytes(VReader *reader,
     VCardStatus card_status;
     unsigned short status;
     VCard *card = vreader_get_card(reader);
+    int size;
 
     if (card == NULL) {
         return VREADER_NO_CARD;
@@ -283,7 +285,7 @@ vreader_xfr_bytes(VReader *reader,
         }
     }
     assert(card_status == VCARD_DONE && response);
-    int size = MIN(*receive_buf_len, response->b_total_len);
+    size = MIN(*receive_buf_len, response->b_total_len);
     memcpy(receive_buf, response->b_data, size);
     *receive_buf_len = size;
     vcard_response_delete(response);

@@ -37,6 +37,7 @@ libcacard_la_LDFLAGS =					\
 	-export-symbols $(srcdir)/src/libcacard.syms	\
 	-no-undefined					\
 	-version-info 0:0:0				\
+	$(WARN_LDFLAGS)
 	$(NULL)
 
 pkgconfigdir = $(libdir)/pkgconfig
@@ -46,7 +47,7 @@ bin_PROGRAMS = vscclient
 vscclient_SOURCES = src/vscclient.c
 vscclient_LDADD = libcacard.la $(CACARD_LIBS)
 
-AM_CPPFLAGS = $(CACARD_CFLAGS)
+AM_CPPFLAGS = $(CACARD_CFLAGS) $(WARN_CFLAGS)
 EXTRA_DIST =					\
 	README.md				\
 	docs/libcacard.txt			\

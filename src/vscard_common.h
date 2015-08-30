@@ -71,8 +71,15 @@ typedef enum VSCErrorCode {
 #define VSCARD_UNDEFINED_READER_ID  0xffffffff
 #define VSCARD_MINIMAL_READER_ID    0
 
-#define VSCARD_MAGIC (*(uint32_t *)"VSCD")
+#if G_BYTE_ORDER == G_LITTLE_ENDIAN
+#define VSCARD_MAGIC_CONST(f) \
+    ((uint32_t)(((f)[0])|((f)[1]<<8)|((f)[2]<<16)|((f)[3]<<24)))
+#else
+#define VSCARD_MAGIC_CONST(f) \
+    ((uint32_t)(((f)[3])|((f)[2]<<8)|((f)[1]<<16)|((f)[0]<<24)))
+#endif
 
+#define VSCARD_MAGIC VSCARD_MAGIC_CONST("VSCD")
 /*
  * Header
  * Each message starts with the header.

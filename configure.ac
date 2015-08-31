@@ -54,6 +54,8 @@ if test "x$enable_pcsc" != "xno"; then
 fi
 AM_CONDITIONAL(ENABLE_PCSC, test "x$enable_pcsc" = "xyes")
 
+GLIB_TESTS
+
 AC_CONFIG_FILES([
 Makefile
 src/Makefile
@@ -67,5 +69,5 @@ libcacard - $VERSION
 
 • Prefix: $prefix
 • PCSC enabled: $enable_pcsc
-
+• Code coverage: $enable_code_coverage
 ])

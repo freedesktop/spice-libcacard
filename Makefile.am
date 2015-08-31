@@ -13,6 +13,7 @@ libcacard_la_SOURCES =				\
 	src/vcard_emul_nss.c			\
 	src/vcard_emul_type.c			\
 	src/vcardt.c				\
+	src/vcardt_internal.h			\
 	src/vreader.c				\
 	$(NULL)
 
@@ -30,7 +31,6 @@ libcacard_include_HEADERS =			\
 	src/vcard_emul.h			\
 	src/vcard_emul_type.h			\
 	src/vcardt.h				\
-	src/vcardt_internal.h			\
 	src/vevent.h				\
 	src/vreader.h				\
 	src/vreadert.h				\

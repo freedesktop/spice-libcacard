@@ -27,6 +27,7 @@ libcacard_include_HEADERS =			\
 	src/card_7816.h				\
 	src/card_7816t.h			\
 	src/eventt.h				\
+	src/libcacard.h				\
 	src/vcard.h				\
 	src/vcard_emul.h			\
 	src/vcard_emul_type.h			\

@@ -36,9 +36,36 @@ AX_CODE_COVERAGE()
 PKG_CHECK_MODULES(CACARD, [glib-2.0 >= 2.22 nss >= 3.12.8])
 PKG_CHECK_MODULES(GTHREAD, [gthread-2.0])
 
+dnl === --enable-pcsc ==========================================================
+
+AC_ARG_ENABLE([pcsc],
+              AS_HELP_STRING([--disable-pcsc],
+                             [do not build passthrough support]),,
+              [enable_pcsc=auto])
+if test "x$enable_pcsc" != "xno"; then
+   PKG_CHECK_MODULES(PCSC, [libpcsclite], [have_pcsc=yes], [have_pcsc=no])
+   if test "x$have_pcsc" = "xno" -a "x$enable_pcsc" = "xyes"; then
+      AC_MSG_ERROR([pcsc support explicitly requested, but libpcsclite couldn't be found])
+   fi
+   if test "x$have_pcsc" = "xyes"; then
+      enable_pcsc=yes
+      AC_DEFINE([ENABLE_PCSC], 1, [pcsc support])
+   fi
+fi
+AM_CONDITIONAL(ENABLE_PCSC, test "x$enable_pcsc" = "xyes")
+
 AC_CONFIG_FILES([
 Makefile
 src/Makefile
 libcacard.pc
 ])
 AC_OUTPUT
+
+AC_MSG_NOTICE([
+
+libcacard - $VERSION
+
+• Prefix: $prefix
+• PCSC enabled: $enable_pcsc
+
+])

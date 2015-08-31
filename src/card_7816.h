@@ -31,8 +31,8 @@ VCardResponse *vcard_make_response(vcard_7816_status_t status);
 /* create a raw response (status has already been encoded */
 VCardResponse *vcard_response_new_data(unsigned char *buf, int len);
 
-
-
+void vcard_response_set_status_bytes(VCardResponse *response,
+                                     unsigned char sw1, unsigned char sw2);
 
 /*
  * destructor for VCardResponse.

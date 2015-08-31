@@ -40,6 +40,7 @@ vcard_response_new
 vcard_response_new_bytes
 vcard_response_new_data
 vcard_response_new_status_bytes
+vcard_response_set_status_bytes
 vcard_select_applet
 vcard_set_applet_private
 vcard_set_atr_func

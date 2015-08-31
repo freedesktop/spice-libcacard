@@ -97,7 +97,7 @@ vcard_reset(VCard *card, VCardPower power)
 VCardApplet *
 vcard_new_applet(VCardProcessAPDU applet_process_function,
                  VCardResetApplet applet_reset_function,
-                 unsigned char *aid, int aid_len)
+                 const unsigned char *aid, int aid_len)
 {
     VCardApplet *applet;
 

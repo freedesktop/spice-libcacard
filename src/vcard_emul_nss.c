@@ -9,6 +9,7 @@
  * This work is licensed under the terms of the GNU LGPL, version 2.1 or later.
  * See the COPYING file in the top-level directory.
  */
+#include "config.h"
 
 /*
  * NSS headers
@@ -1253,7 +1254,12 @@ vcard_emul_options(const char *args)
             opts->hw_card_type = VCARD_EMUL_CAC;
             opts->use_hw = PR_TRUE;
             args = find_blank(args + 7);
-        /* nssemul */
+#if defined(ENABLE_PCSC)
+        } else if (strncmp(args, "passthru", 8) == 0) {
+            opts->hw_card_type = VCARD_EMUL_PASSTHRU;
+            opts->use_hw = PR_TRUE;
+            args = find_blank(args + 8);
+#endif
         } else {
             fprintf(stderr, "Error: Unknown smartcard specification.\n");
             return NULL;
@@ -1273,6 +1279,9 @@ vcard_emul_usage(void)
 " hw_type={card_type_to_emulate}  (default CAC)\n"
 " hw_param={param_for_card}       (default \"\")\n"
 " nssemul                         (alias for use_hw=yes, hw_type=CAC)\n"
+#if defined(ENABLE_PCSC)
+" passthru                        (alias for use_hw=yes, hw_type=PASSTHRU)\n"
+#endif
 " soft=({slot_name},{vreader_name},{card_type_to_emulate},{params_for_card},\n"
 "       {cert1},{cert2},{cert3}    (default none)\n"
 "\n"

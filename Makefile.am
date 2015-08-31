@@ -5,6 +5,7 @@ lib_LTLIBRARIES = libcacard.la
 
 libcacard_la_SOURCES =				\
 	src/cac.c				\
+	src/capcsc.h				\
 	src/card_7816.c				\
 	src/event.c				\
 	src/glib-compat.h			\
@@ -14,6 +15,10 @@ libcacard_la_SOURCES =				\
 	src/vcardt.c				\
 	src/vreader.c				\
 	$(NULL)
+
+if ENABLE_PCSC
+libcacard_la_SOURCES += src/capcsc.c
+endif
 
 libcacard_includedir = $(includedir)/cacard
 libcacard_include_HEADERS =			\
@@ -32,7 +37,7 @@ libcacard_include_HEADERS =			\
 	src/vscard_common.h			\
 	$(NULL)
 
-libcacard_la_LIBADD = $(CACARD_LIBS)
+libcacard_la_LIBADD = $(CACARD_LIBS) $(PCSC_LIBS)
 libcacard_la_LDFLAGS =					\
 	-export-symbols $(srcdir)/src/libcacard.syms	\
 	-no-undefined					\
@@ -56,7 +61,7 @@ if OS_WIN32
 vscclient_CFLAGS += -D__USE_MINGW_ANSI_STDIO=1
 endif
 
-AM_CPPFLAGS = $(CACARD_CFLAGS) $(WARN_CFLAGS)
+AM_CPPFLAGS = $(CACARD_CFLAGS) $(PCSC_CFLAGS) $(WARN_CFLAGS)
 EXTRA_DIST =					\
 	NEWS					\
 	README.md				\

@@ -33,7 +33,7 @@ vcard_response_set_status(VCardResponse *response, vcard_7816_status_t status)
 /*
  * set the status bytes in a response buffer
  */
-static void
+void
 vcard_response_set_status_bytes(VCardResponse *response,
                                unsigned char sw1, unsigned char sw2)
 {

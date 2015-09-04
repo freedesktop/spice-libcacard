@@ -5,11 +5,6 @@
  * See the COPYING file in the top-level directory.
  */
 
-#ifdef G_LOG_DOMAIN
-#undef G_LOG_DOMAIN
-#endif
-#define G_LOG_DOMAIN "libcacard"
-
 #include "glib-compat.h"
 
 #include <string.h>

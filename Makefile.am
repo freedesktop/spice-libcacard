@@ -70,6 +70,7 @@ tests_libcacard_LDADD = libcacard.la
 @CODE_COVERAGE_RULES@
 
 AM_CPPFLAGS =					\
+	-DG_LOG_DOMAIN=\"libcacard\"		\
 	$(CACARD_CFLAGS)			\
 	$(CODE_COVERAGE_CFLAGS)			\
 	$(PCSC_CFLAGS)				\

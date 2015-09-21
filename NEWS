@@ -1,0 +1,6 @@
+v2.5.0
+======
+
+This is the first standalone release after the split from qemu.git
+(the last release of libcacard was part of qemu 2.4). The hosting and
+maintainance of libcacard is now part of the Spice project.

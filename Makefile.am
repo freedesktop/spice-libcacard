@@ -50,6 +50,7 @@ vscclient_CFLAGS = $(AM_CPPFLAGS) $(GTHREAD_CFLAGS)
 
 AM_CPPFLAGS = $(CACARD_CFLAGS) $(WARN_CFLAGS)
 EXTRA_DIST =					\
+	NEWS					\
 	README.md				\
 	docs/libcacard.txt			\
 	src/libcacard.syms			\

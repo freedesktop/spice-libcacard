@@ -1,5 +1,5 @@
 AC_INIT([libcacard], [m4_esyscmd(build-aux/git-version-gen .tarball-version)],
-                     [qemu-devel@nongnu.org])
+                     [spice-devel@lists.freedesktop.org])
 AX_IS_RELEASE([git-directory])
 
 AC_CONFIG_MACRO_DIR([m4])

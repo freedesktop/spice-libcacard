@@ -45,7 +45,8 @@ pkgconfig_DATA = libcacard.pc
 
 bin_PROGRAMS = vscclient
 vscclient_SOURCES = src/vscclient.c
-vscclient_LDADD = libcacard.la $(CACARD_LIBS)
+vscclient_LDADD = libcacard.la $(CACARD_LIBS) $(GTHREAD_LIBS)
+vscclient_CFLAGS = $(AM_CPPFLAGS) $(GTHREAD_CFLAGS)
 
 AM_CPPFLAGS = $(CACARD_CFLAGS) $(WARN_CFLAGS)
 EXTRA_DIST =					\

@@ -20,6 +20,7 @@
 #include <unistd.h>
 #define closesocket(x) close(x)
 #else
+#include <ws2tcpip.h>
 #include <getopt.h>
 #endif
 

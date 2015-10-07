@@ -40,6 +40,10 @@ libcacard_la_LDFLAGS =					\
 	$(WARN_LDFLAGS)
 	$(NULL)
 
+if OS_WIN32
+libcacard_la_LIBADD += -lws2_32
+endif
+
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = libcacard.pc
 

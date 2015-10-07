@@ -10,6 +10,19 @@ AM_INIT_AUTOMAKE([foreign subdir-objects no-dist-gzip dist-xz])
 AM_MAINTAINER_MODE([enable])
 m4_ifdef([AM_SILENT_RULES],[AM_SILENT_RULES([yes])])
 
+AC_CANONICAL_HOST
+AC_MSG_CHECKING([for native Win32])
+case "$host_os" in
+     *mingw*|*cygwin*)
+        os_win32=yes
+        ;;
+     *)
+        os_win32=no
+        ;;
+esac
+AC_MSG_RESULT([$os_win32])
+AM_CONDITIONAL([OS_WIN32],[test "$os_win32" = "yes"])
+
 AX_CHECK_ENABLE_DEBUG([yes],[DEBUG])
 
 AC_PROG_CC

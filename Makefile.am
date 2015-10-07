@@ -48,6 +48,10 @@ vscclient_SOURCES = src/vscclient.c
 vscclient_LDADD = libcacard.la $(CACARD_LIBS) $(GTHREAD_LIBS)
 vscclient_CFLAGS = $(AM_CPPFLAGS) $(GTHREAD_CFLAGS)
 
+if OS_WIN32
+vscclient_CFLAGS += -D__USE_MINGW_ANSI_STDIO=1
+endif
+
 AM_CPPFLAGS = $(CACARD_CFLAGS) $(WARN_CFLAGS)
 EXTRA_DIST =					\
 	NEWS					\

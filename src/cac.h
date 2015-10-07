@@ -25,7 +25,4 @@ VCardStatus cac_card_init(VReader *reader, VCard *card, const char *params,
               unsigned char * const *cert, int cert_len[],
               VCardKey *key[] /* adopt the keys*/,
               int cert_count);
-
-/* not yet implemented */
-VCardStatus cac_is_cac_card(VReader *reader);
 #endif

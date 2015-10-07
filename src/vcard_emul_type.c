@@ -36,12 +36,6 @@ VCardStatus vcard_init(VReader *vreader, VCard *vcard,
 
 VCardEmulType vcard_emul_type_select(VReader *vreader)
 {
-#ifdef notdef
-    /* since there is only one emulator no need to call this function */
-    if (cac_is_cac_card(vreader) == VCARD_DONE) {
-        return VCARD_EMUL_CAC;
-    }
-#endif
     /* return the default */
     return VCARD_EMUL_CAC;
 }

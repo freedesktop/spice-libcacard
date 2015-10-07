@@ -1,5 +1,4 @@
 cac_card_init
-cac_is_cac_card
 vcard_add_applet
 vcard_apdu_delete
 vcard_apdu_new

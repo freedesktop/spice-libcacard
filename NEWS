@@ -1,3 +1,14 @@
+v2.5.1
+======
+
+- fix mingw cross-compilation
+- add error checking to vcard_emul_options()
+- add VCARD_DIRECT implementation to provide direct communication with
+  a smartcard using libpcsclite (--enable-pcsc)
+- add a top-level libcacard.h header
+- add test & code coverage
+- bug fix: delete the reader entry after queueing an event, not before
+
 v2.5.0
 ======
 

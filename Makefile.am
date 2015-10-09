@@ -105,7 +105,11 @@ $(top_srcdir)/.version:
 	echo $(VERSION) > $@-t && mv $@-t $@
 
 BUILT_SOURCES += $(top_srcdir)/.version
-EXTRA_DIST += $(top_srcdir)/.version
+EXTRA_DIST +=				\
+	$(top_srcdir)/.version		\
+	build-aux/git-version-gen	\
+	$(NULL)
+
 gen-ChangeLog:
 	@if test -d "$(srcdir)/.git"; then \
 	  echo Generating ChangeLog... ; \

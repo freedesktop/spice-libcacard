@@ -65,7 +65,7 @@ endif
 include $(srcdir)/build-aux/glib-tap.mk
 
 test_programs = tests/libcacard
-tests_libcacard_LDADD = libcacard.la
+tests_libcacard_LDADD = libcacard.la $(GTHREAD_LIBS)
 
 @CODE_COVERAGE_RULES@
 

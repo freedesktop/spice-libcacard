@@ -480,4 +480,3 @@ vcard_emul_nss.c - virtual card emulator implementation for nss.
 vscclient.c - socket connection to guest qemu usb driver.
 vscard_common.h - common header with the guest qemu usb driver.
 mutex.h - header file for machine independent mutexes.
-link_test.c - static test to make sure all the symbols are properly defined.

@@ -92,6 +92,9 @@ EXTRA_DIST +=					\
 	tests/db/secmod.db                      \
 	$(NULL)
 
+# aclocal will install pkg.m4 from pkg-config into m4
+MAINTAINERCLEANFILES +=	$(srcdir)/m4/pkg.m4
+
 MAINTAINERCLEANFILES +=					\
 	$(GITIGNORE_MAINTAINERCLEANFILES_TOPLEVEL)	\
 	$(GITIGNORE_MAINTAINERCLEANFILES_MAKEFILE_IN)	\

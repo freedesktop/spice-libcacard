@@ -5,6 +5,10 @@
 #ifndef CAPCSC_H
 #define CAPCSC_H 1
 
+#if !defined(__LIBCACARD_H_INSIDE__) && !defined(LIBCACARD_COMPILATION)
+#warning "Only <libcacard.h> can be included directly"
+#endif
+
 #define CAPCSC_POLL_TIME            50      /* ms  - Time we will poll for */
                                             /*       card change when a    */
                                             /*       reader is connected */

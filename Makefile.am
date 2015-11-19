@@ -71,6 +71,7 @@ tests_libcacard_LDADD = libcacard.la $(GTHREAD_LIBS)
 
 AM_CPPFLAGS =					\
 	-DG_LOG_DOMAIN=\"libcacard\"		\
+	-DLIBCACARD_COMPILATION			\
 	$(CACARD_CFLAGS)			\
 	$(CODE_COVERAGE_CFLAGS)			\
 	$(PCSC_CFLAGS)				\

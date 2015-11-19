@@ -5,6 +5,8 @@
 #ifndef LIBCACARD_H
 #define LIBCACARD_H
 
+#define __LIBCACARD_H_INSIDE__
+
 #include "cac.h"
 #include "card_7816.h"
 #include "card_7816t.h"

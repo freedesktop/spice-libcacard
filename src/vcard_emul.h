@@ -13,6 +13,10 @@
 #ifndef VCARD_EMUL_H
 #define VCARD_EMUL_H 1
 
+#if !defined(__LIBCACARD_H_INSIDE__) && !defined(LIBCACARD_COMPILATION)
+#warning "Only <libcacard.h> can be included directly"
+#endif
+
 #include "card_7816t.h"
 #include "vcard.h"
 #include "vcard_emul_type.h"

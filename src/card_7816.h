@@ -7,6 +7,10 @@
 #ifndef CARD_7816_H
 #define CARD_7816_H  1
 
+#if !defined(__LIBCACARD_H_INSIDE__) && !defined(LIBCACARD_COMPILATION)
+#warning "Only <libcacard.h> can be included directly"
+#endif
+
 #include "card_7816t.h"
 #include "vcardt.h"
 

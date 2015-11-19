@@ -7,6 +7,10 @@
 #ifndef CARD_7816T_H
 #define CARD_7816T_H 1
 
+#if !defined(__LIBCACARD_H_INSIDE__) && !defined(LIBCACARD_COMPILATION)
+#warning "Only <libcacard.h> can be included directly"
+#endif
+
 typedef unsigned short vcard_7816_status_t;
 
 struct VCardResponseStruct {

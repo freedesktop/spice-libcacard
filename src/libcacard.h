@@ -5,6 +5,10 @@
 #ifndef LIBCACARD_H
 #define LIBCACARD_H
 
+#include <glib.h>
+
+G_BEGIN_DECLS
+
 #define __LIBCACARD_H_INSIDE__
 
 #include "cac.h"
@@ -19,5 +23,7 @@
 #include "vreader.h"
 #include "vreadert.h"
 #include "vscard_common.h"
+
+G_END_DECLS
 
 #endif

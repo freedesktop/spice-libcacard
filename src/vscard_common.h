@@ -23,6 +23,7 @@
 #define VSCARD_COMMON_H
 
 #include <stdint.h>
+#include <glib.h>
 
 #define VERSION_MAJOR_BITS 11
 #define VERSION_MIDDLE_BITS 11

@@ -1,0 +1,23 @@
+notifications:
+  irc:
+    channels:
+      - "irc.gimp.net#spice"
+    on_success: change
+    on_failure: always
+sudo: required
+dist: trusty
+language: c
+compiler:
+  - clang
+  - gcc
+addons:
+  apt:
+    packages:
+      - automake
+      - autoconf
+      - autoconf-archive
+      - pkg-config
+      - libglib2.0-dev
+      - libnss3-dev
+script:
+  - ./autogen.sh --prefix=/usr && make all && make distcheck

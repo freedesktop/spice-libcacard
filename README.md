@@ -1,4 +1,4 @@
-# libcacard
+# libcacard ![alt text][travis]
 
 CAC (Common Access Card) library
 
@@ -19,3 +19,5 @@ This project was originally developped by:
 
 - Alon Levy <alevy@redhat.com>
 - Robert Relyea <rrelyea@redhat.com>
+
+[travis]: https://travis-ci.org/SPICE/libcacard.svg?branch=master

@@ -5,8 +5,8 @@ v2.5.1
 - add error checking to vcard_emul_options()
 - add VCARD_DIRECT implementation to provide direct communication with
   a smartcard using libpcsclite (--enable-pcsc)
-- add a top-level libcacard.h header
-- add test & code coverage
+- add a top-level libcacard.h header compatible with c++
+- add test & code coverage and travis CI integration
 - bug fix: delete the reader entry after queueing an event, not before
 
 v2.5.0

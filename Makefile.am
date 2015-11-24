@@ -87,7 +87,6 @@ EXTRA_DIST +=					\
 	src/libcacard.syms			\
 	build-aux/tap-driver.sh			\
 	build-aux/tap-test			\
-	build-aux/test-driver			\
 	tests/db/cert8.db                       \
 	tests/db/key3.db                        \
 	tests/db/secmod.db                      \

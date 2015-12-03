@@ -5,10 +5,6 @@
 #ifndef VCARD_H
 #define VCARD_H 1
 
-#if !defined(__LIBCACARD_H_INSIDE__) && !defined(LIBCACARD_COMPILATION)
-#warning "Only <libcacard.h> can be included directly"
-#endif
-
 #include "vcardt.h"
 
 /*

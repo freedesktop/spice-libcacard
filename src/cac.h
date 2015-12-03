@@ -8,10 +8,6 @@
 #ifndef CAC_H
 #define CAC_H 1
 
-#if !defined(__LIBCACARD_H_INSIDE__) && !defined(LIBCACARD_COMPILATION)
-#warning "Only <libcacard.h> can be included directly"
-#endif
-
 #include "vcard.h"
 #include "vreader.h"
 

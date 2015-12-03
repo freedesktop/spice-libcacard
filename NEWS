@@ -1,3 +1,8 @@
+v2.5.2
+======
+
+- remove libcacard.h usage warning (to silence qemu 2.5.0 build)
+
 v2.5.1
 ======
 

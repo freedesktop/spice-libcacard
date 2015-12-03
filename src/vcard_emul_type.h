@@ -11,10 +11,6 @@
 #ifndef VCARD_EMUL_TYPE_H
 #define VCARD_EMUL_TYPE_H 1
 
-#if !defined(__LIBCACARD_H_INSIDE__) && !defined(LIBCACARD_COMPILATION)
-#warning "Only <libcacard.h> can be included directly"
-#endif
-
 #include "vcardt.h"
 #include "vreadert.h"
 

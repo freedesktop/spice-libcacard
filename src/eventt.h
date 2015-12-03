@@ -6,10 +6,6 @@
 #ifndef EVENTT_H
 #define EVENTT_H 1
 
-#if !defined(__LIBCACARD_H_INSIDE__) && !defined(LIBCACARD_COMPILATION)
-#warning "Only <libcacard.h> can be included directly"
-#endif
-
 #include "vreadert.h"
 #include "vcardt.h"
 

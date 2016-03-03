@@ -1266,6 +1266,10 @@ vcard_emul_options(const char *args)
             args++;
             db = args;
             args = strpbrk(args, "\"\n");
+            if (args == NULL) {
+              fprintf(stderr, "Error: invalid db argument.\n");
+              return NULL;
+            }
             opts->nss_db = g_strndup(db, args-db);
             if (*args != 0) {
                 args++;

@@ -732,11 +732,9 @@ vcard_process_apdu(VCard *card, VCardAPDU *apdu, VCardResponse **response)
     }
     buffer_response = vcard_get_buffer_response(card);
     if (buffer_response && apdu->a_ins != VCARD7816_INS_GET_RESPONSE) {
-        /* clear out buffer_response, return an error */
+        /* clear out buffer_response, do not return an error */
         vcard_set_buffer_response(card, NULL);
         vcard_buffer_response_delete(buffer_response);
-        *response = vcard_make_response(VCARD7816_STATUS_EXC_ERROR);
-        return VCARD_DONE;
     }
 
     status = vcard_process_applet_apdu(card, apdu, response);

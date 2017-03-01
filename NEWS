@@ -1,3 +1,12 @@
+v2.5.3
+======
+
+- fix memory leak in vcard_apdu_new
+- do not fail, if the caller didn't pick up response
+  from previous call (to please opensc)
+- some scan-build errors fixed
+
+
 v2.5.2
 ======
 

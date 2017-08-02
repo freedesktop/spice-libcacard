@@ -679,8 +679,11 @@ main(
 #endif
 
     while ((c = getopt(argc, argv, "c:e:d:")) != -1) {
-        assert(optarg != NULL);
+        if (c == '?') {
+            break;
+        }
 
+        assert(optarg != NULL);
         switch (c) {
         case 'c':
             if (cert_count >= MAX_CERTS) {

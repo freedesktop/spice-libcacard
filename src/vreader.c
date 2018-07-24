@@ -254,6 +254,7 @@ vreader_xfr_bytes(VReader *reader,
     VCardAPDU *apdu;
     VCardResponse *response = NULL;
     VCardStatus card_status;
+    VReaderStatus ret;
     unsigned short status;
     VCard *card = vreader_get_card(reader);
     int size;
@@ -277,14 +278,23 @@ vreader_xfr_bytes(VReader *reader,
                   response->b_sw2, response->b_len, response->b_total_len);
         }
     }
+    if (card_status == VCARD_FAIL) {
+        *receive_buf_len = 0;
+        ret = VREADER_NO_CARD;
+        goto exit;
+    }
+
     assert(card_status == VCARD_DONE && response);
     size = MIN(*receive_buf_len, response->b_total_len);
     memcpy(receive_buf, response->b_data, size);
     *receive_buf_len = size;
+    ret = VREADER_OK;
+
+ exit:
     vcard_response_delete(response);
     vcard_apdu_delete(apdu);
     vcard_free(card); /* free our reference */
-    return VREADER_OK;
+    return ret;
 }
 
 struct VReaderListStruct {

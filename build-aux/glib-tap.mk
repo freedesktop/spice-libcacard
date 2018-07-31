@@ -137,9 +137,9 @@ endif
 
 VALGRIND_ARGS = \
 	--leak-check=full \
-	--show-leak-kinds=all \
 	--child-silent-after-fork=yes \
-	--suppressions=$(abs_top_srcdir)/build-aux/glib.supp \
+	--suppressions=/usr/share/glib-2.0/valgrind/glib.supp \
+	--suppressions=$(abs_top_srcdir)/build-aux/nss.supp \
 	--num-callers=18 \
 	$(NULL)
 

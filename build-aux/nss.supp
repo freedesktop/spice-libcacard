@@ -1,0 +1,81 @@
+{
+   PK11_FindCertFromNickname
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:*alloc
+   ...
+   fun:PK11_FindCertFromNickname
+   ...
+}
+{
+   PK11_FindCertFromNickname
+   Memcheck:Leak
+   match-leak-kinds: possible
+   fun:*alloc
+   ...
+   fun:PK11_FindCertFromNickname
+   ...
+}
+{
+   SECMOD_LoadModule
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:*alloc
+   ...
+   obj:/usr/lib64/libnss3.so
+   fun:SECMOD_LoadModule
+   fun:SECMOD_LoadModule
+   ...
+}
+{
+   NSS_Init
+   Memcheck:Leak
+   match-leak-kinds: possible
+   fun:*alloc
+   ...
+   fun:NSS_Init
+   fun:vcard_emul_init
+   fun:libcacard_init
+   ...
+}
+{
+   NSS_Init
+   Memcheck:Leak
+   match-leak-kinds: definite
+   fun:*alloc
+   ...
+   fun:NSS_Init
+   fun:vcard_emul_init
+   fun:libcacard_init
+   ...
+}
+{
+   NSS_Init
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:*alloc
+   ...
+   fun:NSS_Init
+   fun:vcard_emul_init
+   fun:libcacard_init
+   ...
+}
+{
+   PR_LoadLibraryWithFlags
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:calloc
+   ...
+   fun:PR_LoadLibraryWithFlags
+   ...
+}
+{
+   softokn
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:*alloc
+   ...
+   obj:/usr/lib64/libsoftokn3.so
+   ...
+}
+

@@ -16,8 +16,6 @@
 #include "vevent.h"
 #include "cac.h" /* just for debugging defines */
 
-#define LIBCACARD_LOG_DOMAIN "libcacard"
-
 struct VReaderStruct {
     int    reference_count;
     VCard *card;

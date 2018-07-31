@@ -246,7 +246,7 @@ vcard_emul_rsa_op(VCard *card, VCardKey *key,
     if ((unsigned)buffer_size != signature_len) {
         return  VCARD7816_STATUS_ERROR_DATA_INVALID;
     }
-    /* be able to handle larger keys if necessariy */
+    /* be able to handle larger keys if necessary */
     bp = &buf[0];
     if (sizeof(buf) < signature_len) {
         bp = g_malloc(signature_len);
@@ -270,7 +270,7 @@ vcard_emul_rsa_op(VCard *card, VCardKey *key,
         }
         /*
          * we've had a successful X509 operation, this failure must be
-         * somethine else
+         * something else
          */
         if (key->failedX509 == VCardEmulFalse) {
             ret = vcard_emul_map_error(PORT_GetError());

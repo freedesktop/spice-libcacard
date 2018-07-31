@@ -449,7 +449,7 @@ functions:
   Return the virtual ATR for the card. By convention this should be the value
   VCARD_ATR_PREFIX(size) followed by several ascii bytes related to this
   particular emulator. For instance the NSS emulator returns
-  {VCARD_ATR_PREFIX(3), 'N', 'S', 'S' }. Do ot return more data then *atr_len;
+  {VCARD_ATR_PREFIX(3), 'N', 'S', 'S' }. Do not return more data then *atr_len;
 
      void vcard_emul_reset(VCard *card, VCardPower power)
 
@@ -458,25 +458,27 @@ functions:
 
 -------------------------------------------------------
 List of files and their function:
-README - This file
-card_7816.c - emulate basic 7816 functionality. Parse APDUs.
-card_7816.h - apdu and response services definitions.
-card_7816t.h - 7816 specific structures, types and definitions.
-event.c - event handling code.
-event.h - event handling services definitions.
-eventt.h - event handling structures and types
-vcard.c - handle common virtual card services like creation, destruction, and
-          applet management.
-vcard.h - common virtual card services function definitions.
-vcardt.h - comon virtual card types
-vreader.c - common virtual reader services.
-vreader.h - common virtual reader services definitions.
-vreadert.h - comon virtual reader types.
-vcard_emul_type.c - manage the card type emulators.
-vcard_emul_type.h - definitions for card type emulators.
-cac.c - card type emulator for CAC cards
-vcard_emul.h - virtual card emulator service definitions.
-vcard_emul_nss.c - virtual card emulator implementation for nss.
-vscclient.c - socket connection to guest qemu usb driver.
-vscard_common.h - common header with the guest qemu usb driver.
-mutex.h - header file for machine independent mutexes.
+docs/libcacard.txt - This file
+src/card_7816.c - emulate basic 7816 functionality. Parse APDUs.
+src/card_7816.h - apdu and response services definitions.
+src/card_7816t.h - 7816 specific structures, types and definitions.
+src/event.c - event handling code.
+src/event.h - event handling services definitions.
+src/eventt.h - event handling structures and types
+src/vcard.c - handle common virtual card services like creation, destruction,
+              and applet management.
+src/vcard.h - common virtual card services function definitions.
+src/vcardt.h - comon virtual card types
+src/vreader.c - common virtual reader services.
+src/vreader.h - common virtual reader services definitions.
+src/vreadert.h - comon virtual reader types.
+src/vcard_emul_type.c - manage the card type emulators.
+src/vcard_emul_type.h - definitions for card type emulators.
+src/cac.c - card type emulator for CAC cards
+src/vcard_emul.h - virtual card emulator service definitions.
+src/vcard_emul_nss.c - virtual card emulator implementation for nss.
+src/vscclient.c - socket connection to guest qemu usb driver.
+src/vscard_common.h - common header with the guest qemu usb driver.
+src/mutex.h - header file for machine independent mutexes.
+tests/libcacard.c - Test for the whole smart card emulation
+

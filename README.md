@@ -8,6 +8,8 @@ reader running in a guest virtual machine.
 It implements DoD CAC standard with separate pki containers
 (compatible coolkey), using certificates read from NSS.
 
+For more information and API documentation, read the docs/libcacard.txt file.
+
 # History
 
 This project used to be part of qemu until version 2.5. The history

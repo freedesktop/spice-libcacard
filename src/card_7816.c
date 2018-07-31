@@ -757,3 +757,5 @@ vcard_process_apdu(VCard *card, VCardAPDU *apdu, VCardResponse **response)
         vcard_make_response(VCARD7816_STATUS_ERROR_COMMAND_NOT_SUPPORTED);
     return VCARD_DONE;
 }
+
+/* vim: set ts=4 sw=4 tw=0 noet expandtab: */

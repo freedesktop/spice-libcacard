@@ -1,6 +1,9 @@
 /*
  * implement the applets for the CAC card.
  *
+ * Adaptation to GSC-IS 2.1:
+ * https://nvlpubs.nist.gov/nistpubs/Legacy/IR/nistir6887e2003.pdf
+ *
  * This code is licensed under the GNU LGPL, version 2.1 or later.
  * See the COPYING file in the top-level directory.
  */
@@ -412,3 +415,4 @@ failure:
     return VCARD_FAIL;
 }
 
+/* vim: set ts=4 sw=4 tw=0 noet expandtab: */

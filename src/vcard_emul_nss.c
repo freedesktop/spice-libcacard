@@ -323,6 +323,12 @@ vcard_emul_rsa_op(VCard *card, VCardKey *key,
             key->failedX509 = VCardEmulTrue;
             goto cleanup;
         }
+    } else {
+        /* We can not do raw RSA operation, nor the data looks like PKCS#1.5
+         * bail out.
+         */
+        ret = VCARD7816_STATUS_ERROR_DATA_INVALID;
+        goto cleanup;
     }
     pad_len = buffer_size - signature_len;
     assert(pad_len < 4);

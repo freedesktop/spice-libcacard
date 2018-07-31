@@ -396,6 +396,10 @@ vcard_emul_login(VCard *card, unsigned char *pin, int pin_len)
         pin_string[i] = 0;
     }
 
+    /* If using an emulated card, make sure to log out of any already logged in
+     * session. */
+    vcard_emul_logout(card);
+
     rv = PK11_Authenticate(slot, PR_FALSE, pin_string);
     memset(pin_string, 0, pin_len);  /* don't let the pin hang around in memory
                                         to be snooped */

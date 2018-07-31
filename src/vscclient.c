@@ -25,6 +25,15 @@
 #include <getopt.h>
 #endif
 
+#if defined(ENABLE_PCSC)
+# ifdef __APPLE__
+# include <PCSC/winscard.h>
+# include <PCSC/wintypes.h>
+# else
+# include <winscard.h>
+# endif
+#endif
+
 #include "glib-compat.h"
 
 #include "vscard_common.h"
@@ -34,6 +43,7 @@
 #include "vevent.h"
 
 static int verbose;
+static int with_pcsc;
 
 static void
 print_byte_array(
@@ -49,10 +59,94 @@ print_byte_array(
 
 static void
 print_usage(void) {
-    printf("vscclient [-c <certname> .. -e <emul_args> -d <level>] "
-            "<host> <port>\n");
+    printf("vscclient OPTIONS <host> <port>\n");
+    printf(" -e <emul_args>        - Emulator arguments, see below\n");
+    printf(" -c <certname>         - Software emulation certificates\n");
+    printf(" -d <level>            - Debug level\n");
+    printf(" -p                    - Use real smartcard to compare with emulator\n");
     vcard_emul_usage();
 }
+
+#if defined(ENABLE_PCSC)
+static SCARD_IO_REQUEST scard_pci;
+static SCARDHANDLE scard;
+static SCARDCONTEXT scard_ctxt;
+
+static gboolean pcsc_transmit(BYTE *cmd, LONG cmdlen, BYTE *recv, int *recvlen)
+{
+    LONG rv;
+
+    rv = SCardTransmit(scard, &scard_pci, cmd, cmdlen,
+                       NULL, recv, (DWORD*)recvlen);
+    g_return_val_if_fail(rv == SCARD_S_SUCCESS, FALSE);
+
+    return 0;
+}
+
+static gboolean pcsc_init(void)
+{
+    LONG rv;
+    DWORD nreaders, protocol;
+    LPTSTR readers;
+
+    rv = SCardEstablishContext(SCARD_SCOPE_SYSTEM, NULL, NULL, &scard_ctxt);
+    g_return_val_if_fail(rv == SCARD_S_SUCCESS, FALSE);
+
+#ifdef SCARD_AUTOALLOCATE
+    nreaders = SCARD_AUTOALLOCATE;
+
+    rv = SCardListReaders(scard_ctxt, NULL, (LPTSTR)&readers, &nreaders);
+    g_return_val_if_fail(rv == SCARD_S_SUCCESS, FALSE);
+#else
+    rv = SCardListReaders(scard_ctxt, NULL, NULL, &nreaders);
+    g_return_val_if_fail(rv == SCARD_S_SUCCESS, FALSE);
+
+    readers = g_new0(char, nreaders);
+    rv = SCardListReaders(scard_ctxt, NULL, readers, &nreaders);
+    g_return_val_if_fail(rv == SCARD_S_SUCCESS, FALSE);
+#endif
+    printf("reader name: %s\n", readers);
+
+    rv = SCardConnect(scard_ctxt, readers, SCARD_SHARE_SHARED,
+                      SCARD_PROTOCOL_T0 | SCARD_PROTOCOL_T1, &scard, &protocol);
+    g_return_val_if_fail(rv == SCARD_S_SUCCESS, FALSE);
+
+    switch(protocol) {
+    case SCARD_PROTOCOL_T0:
+        scard_pci = *SCARD_PCI_T0;
+        break;
+
+    case SCARD_PROTOCOL_T1:
+        scard_pci = *SCARD_PCI_T1;
+        break;
+    default:
+        g_return_val_if_reached(FALSE);
+    }
+
+#ifdef SCARD_AUTOALLOCATE
+    rv = SCardFreeMemory(scard_ctxt, readers);
+    g_warn_if_fail(rv == SCARD_S_SUCCESS);
+#else
+    g_free(readers);
+#endif
+
+    return TRUE;
+}
+
+static void pcsc_deinit(void)
+{
+    LONG rv;
+
+    rv = SCardDisconnect(scard, SCARD_LEAVE_CARD);
+    g_warn_if_fail(rv == SCARD_S_SUCCESS);
+    scard = 0;
+
+    rv = SCardReleaseContext(scard_ctxt);
+    g_warn_if_fail(rv == SCARD_S_SUCCESS);
+    scard_ctxt = 0;
+}
+#endif
+
 
 static GIOChannel *channel_socket;
 static GByteArray *socket_to_send;
@@ -346,12 +440,19 @@ do_socket_read(GIOChannel *source,
     }
 
     if (state == STATE_MESSAGE) {
+        char *reply = NULL;
+#if defined(ENABLE_PCSC)
+        int reply_size;
+#endif
+
         switch (mhHeader.type) {
         case VSC_APDU:
             if (verbose) {
-                printf(" recv APDU: ");
+                static int n = 0;
+                printf("\n\n >>> %d recv APDU: \n", n++);
                 print_byte_array(pbSendBuffer, mhHeader.length);
             }
+
             /* Transmit received APDU */
             dwSendLength = mhHeader.length;
             dwRecvLength = sizeof(pbRecvBuffer);
@@ -359,18 +460,44 @@ do_socket_read(GIOChannel *source,
             reader_status = vreader_xfr_bytes(reader,
                                               pbSendBuffer, dwSendLength,
                                               pbRecvBuffer, &dwRecvLength);
+            if (verbose) {
+                printf("libcacard response: ");
+                print_byte_array(pbRecvBuffer, dwRecvLength);
+            }
+
+#if defined(ENABLE_PCSC)
+            if (with_pcsc) {
+                reply_size = dwRecvLength;
+                reply = g_memdup(pbRecvBuffer, reply_size);
+
+                dwSendLength = mhHeader.length;
+                dwRecvLength = sizeof(pbRecvBuffer);
+
+                if (!pcsc_transmit(pbSendBuffer, dwSendLength,
+                                   pbRecvBuffer, &dwRecvLength))
+                    reader_status = VREADER_OK;
+                else
+                    reader_status = VREADER_NO_CARD;
+            }
+#endif
+
             if (reader_status == VREADER_OK) {
                 mhHeader.length = dwRecvLength;
-                if (verbose) {
-                    printf(" send response: ");
+#if defined(ENABLE_PCSC)
+                if (with_pcsc && verbose) {
+                    int diff = (unsigned int) reply_size != mhHeader.length ||
+                      memcmp(pbRecvBuffer, reply, reply_size);
+                    printf("HW response:%s ", diff ? "\x1B[31m!!!\x1B[0m" : "");
                     print_byte_array(pbRecvBuffer, mhHeader.length);
                 }
+#endif
                 send_msg(VSC_APDU, mhHeader.reader_id,
                          pbRecvBuffer, dwRecvLength);
             } else {
                 rv = reader_status; /* warning: not meaningful */
                 send_msg(VSC_Error, mhHeader.reader_id, &rv, sizeof(uint32_t));
             }
+            g_free(reply);
             vreader_free(reader);
             reader = NULL; /* we've freed it, don't use it by accident
                               again */
@@ -678,14 +805,14 @@ main(
     }
 #endif
 
-    while ((c = getopt(argc, argv, "c:e:d:")) != -1) {
+    while ((c = getopt(argc, argv, "c:e:d:p")) != -1) {
         if (c == '?') {
             break;
         }
 
-        assert(optarg != NULL);
         switch (c) {
         case 'c':
+            assert(optarg != NULL);
             if (cert_count >= MAX_CERTS) {
                 printf("too many certificates (max = %d)\n", MAX_CERTS);
                 exit(5);
@@ -693,10 +820,15 @@ main(
             cert_names[cert_count++] = optarg;
             break;
         case 'e':
+            assert(optarg != NULL);
             emul_args = optarg;
             break;
         case 'd':
+            assert(optarg != NULL);
             verbose = get_id_from_string(optarg, 1);
+            break;
+        case 'p':
+            with_pcsc = 1;
             break;
         default:
             g_warn_if_reached();
@@ -767,6 +899,16 @@ main(
     /* we buffer ourself for thread safety reasons */
     g_io_channel_set_buffered(channel_socket, FALSE);
 
+    if (with_pcsc) {
+#if defined(ENABLE_PCSC)
+	if (!pcsc_init())
+	        return 1;
+#else
+        printf("No PCSC support\n");
+        return 1;
+#endif
+    }
+
     /* Send init message, Host responds (and then we send reader attachments) */
     init = (VSCMsgInit) {
         .version = htonl(VSCARD_VERSION),
@@ -783,5 +925,10 @@ main(
     g_byte_array_free(socket_to_send, TRUE);
 
     closesocket(sock);
+
+#if defined(ENABLE_PCSC)
+    pcsc_deinit();
+#endif
+
     return 0;
 }

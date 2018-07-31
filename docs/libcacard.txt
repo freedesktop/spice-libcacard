@@ -480,5 +480,9 @@ src/vcard_emul_nss.c - virtual card emulator implementation for nss.
 src/vscclient.c - socket connection to guest qemu usb driver.
 src/vscard_common.h - common header with the guest qemu usb driver.
 src/mutex.h - header file for machine independent mutexes.
+src/common.c - Utilities functions
+src/common.h - header file utilities functions
+src/simpletlv.c - Simple TLV encoding functions
+src/simpletlv.h - header file for Simple TLV encoding helpers
 tests/libcacard.c - Test for the whole smart card emulation
 

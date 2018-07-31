@@ -7,8 +7,12 @@ libcacard_la_SOURCES =				\
 	src/cac.c				\
 	src/capcsc.h				\
 	src/card_7816.c				\
+	src/common.c				\
+	src/common.h				\
 	src/event.c				\
 	src/glib-compat.h			\
+	src/simpletlv.c				\
+	src/simpletlv.h				\
 	src/vcard.c				\
 	src/vcard_emul_nss.c			\
 	src/vcard_emul_type.c			\

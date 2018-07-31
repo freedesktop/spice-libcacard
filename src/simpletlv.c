@@ -278,4 +278,46 @@ simpletlv_free(struct simpletlv_member *tlv, size_t tlvlen)
     }
     free(tlv);
 }
+
+struct simpletlv_member *
+simpletlv_clone(struct simpletlv_member *tlv, size_t tlvlen)
+{
+    size_t i = 0, j;
+    struct simpletlv_member *new = NULL;
+
+    new = malloc(sizeof(struct simpletlv_member)*tlvlen);
+    if (!new)
+        goto failure;
+
+    for (i = 0; i < tlvlen; i++) {
+        new[i].type = tlv[i].type;
+        new[i].tag = tlv[i].tag;
+        new[i].length = tlv[i].length;
+        if (tlv[i].type == SIMPLETLV_TYPE_COMPOUND) {
+            new[i].value.child = simpletlv_clone(
+                tlv[i].value.child, tlv[i].length);
+            if (new[i].value.child == NULL)
+                goto failure;
+        } else {
+            new[i].value.value = malloc(
+                sizeof(unsigned char)*tlv[i].length);
+            if (new[i].value.value == NULL)
+                goto failure;
+            memcpy(new[i].value.value, tlv[i].value.value,
+                tlv[i].length);
+        }
+    }
+    return new;
+
+failure:
+    for (j = 0; j < i; i++) {
+        if (tlv[i].type == SIMPLETLV_TYPE_COMPOUND) {
+            simpletlv_free(new[i].value.child, new[i].length);
+        } else {
+            free(new[i].value.value);
+        }
+    }
+    free(new);
+    return NULL;
+}
 /* vim: set ts=4 sw=4 tw=0 noet expandtab: */

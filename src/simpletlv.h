@@ -115,4 +115,13 @@ int
 simpletlv_read_tag(unsigned char **buf, size_t buflen,
                    unsigned char *tag_out, size_t *taglen);
 
+
+/* create a deep copy of the SimpleTLV structure
+ *
+ * The calling function is responsible for freeing the structure and
+ * all its children by calling simpletlv_free().
+ */
+struct simpletlv_member *
+simpletlv_clone(struct simpletlv_member *tlv, size_t tlvlen);
+
 #endif

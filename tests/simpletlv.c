@@ -220,6 +220,7 @@ static void test_encode_skipped(void)
       {0x30, 2, {/*.value = simple_value2*/}, SIMPLETLV_TYPE_NONE}
     };
     unsigned char encoded[] = "\x25\x02\x12\x14";
+
     simple[0].value.value = simple_value;
     simple[1].value.value = simple_value2;
 
@@ -242,6 +243,32 @@ static void test_encode_skipped(void)
     g_free(result);
 }
 
+static void test_clone_simple(void)
+{
+    unsigned char *result = NULL;
+    size_t result_len = 0;
+    unsigned char simple_value[] = "\x14\x18";
+    unsigned char simple_value2[] = "\x64\x24\x44";
+    static struct simpletlv_member simple[2] = {
+      {0x13, 2, {/*.value = simple_value*/}, SIMPLETLV_TYPE_LEAF},
+      {0xDD, 3, {/*.value = simple_value2*/}, SIMPLETLV_TYPE_LEAF}
+    };
+    unsigned char encoded[] = "\x13\x02\x14\x18\xDD\x03\x64\x24\x44";
+    struct simpletlv_member *clone;
+
+    simple[0].value.value = simple_value;
+    simple[1].value.value = simple_value2;
+
+    clone = simpletlv_clone(simple, 2);
+    g_assert_nonnull(clone);
+
+    result = NULL;
+    result_len = simpletlv_encode(clone, 2, &result, 0, NULL);
+    g_assert_cmpmem(result, result_len, encoded, 9);
+    g_free(result);
+    simpletlv_free(clone, 2);
+}
+
 int main(int argc, char *argv[])
 {
     int ret;
@@ -256,6 +283,7 @@ int main(int argc, char *argv[])
     g_test_add_func("/simpletlv/encode/simple", test_encode_simple);
     g_test_add_func("/simpletlv/encode/nested", test_encode_nested);
     g_test_add_func("/simpletlv/encode/skipped", test_encode_skipped);
+    g_test_add_func("/simpletlv/clone/simple", test_clone_simple);
 
     ret = g_test_run();
 

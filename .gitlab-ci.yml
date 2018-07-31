@@ -1,0 +1,44 @@
+image: fedora:latest
+
+before_script:
+  - dnf update -y
+  - dnf install -y gcc automake libtool make pkgconfig autoconf-archive nss-devel glib2-devel opensc gnutls-utils nss-tools openssl softhsm lcov valgrind
+
+Build:
+  stage: build
+  script:
+    - ./autogen.sh
+    - make
+
+Check:
+  stage: test
+  script:
+    - ./autogen.sh --enable-code-coverage
+    - make check
+    - make code-coverage-capture
+    - lcov --summary libcacard-*-coverage.info
+  artifacts:
+    expire_in: '1 week'
+    paths:
+      - test-suite.log
+      - libcacard-*-coverage
+
+Memcheck:
+  stage: test
+  script:
+    - ./autogen.sh
+    - make memcheck-local
+  allow_failure: true
+
+pages:
+  stage: deploy
+  dependencies:
+    - Check
+  script:
+    - mv *-coverage/ public/
+  artifacts:
+    paths:
+      - public
+    expire_in: 30 days
+  only:
+    - master

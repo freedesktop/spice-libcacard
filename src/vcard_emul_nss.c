@@ -673,6 +673,7 @@ vcard_emul_mirror_card(VReader *vreader)
         cert_count++;
         CERT_DestroyCertificate(cert); /* key obj still has a reference */
     }
+    PK11_DestroyGenericObjects(firstObj);
 
     /* now create the card */
     card = vcard_emul_make_card(vreader, certs, cert_len, keys, cert_count);

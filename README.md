@@ -22,4 +22,8 @@ This project was originally developped by:
 - Alon Levy <alevy@redhat.com>
 - Robert Relyea <rrelyea@redhat.com>
 
+Extended to new GSC-IS 2.1 standard by:
+
+- Jakub Jelen <jjelen@redhat.com>
+
 [travis]: https://travis-ci.org/SPICE/libcacard.svg?branch=master

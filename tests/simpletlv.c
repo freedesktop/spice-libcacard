@@ -73,6 +73,31 @@ static void test_length_nested(void)
     g_assert_cmpint(length, ==, -1);
 }
 
+static void test_length_skipped(void)
+{
+    size_t length = 0;
+    unsigned char simple_value[] = "\x12\x14";
+    unsigned char simple_value2[] = "\x16\x18";
+    static struct simpletlv_member simple[2] = {
+      {0x25, 2, {/*.value = simple_value*/}, SIMPLETLV_TYPE_LEAF},
+      {0x30, 2, {/*.value = simple_value2*/}, SIMPLETLV_TYPE_NONE}
+    };
+    simple[0].value.value = simple_value;
+    simple[1].value.value = simple_value2;
+
+    /* Simple short value to TLV */
+    length = simpletlv_get_length(simple, 2, SIMPLETLV_BOTH);
+    g_assert_cmpint(length, ==, 4);
+
+    /* Simple short value to TL */
+    length = simpletlv_get_length(simple, 2, SIMPLETLV_TL);
+    g_assert_cmpint(length, ==, 2);
+
+    /* Simple short value to V */
+    length = simpletlv_get_length(simple, 2, SIMPLETLV_VALUE);
+    g_assert_cmpint(length, ==, 2);
+}
+
 /* Test that we can encode arbitrary data into Simple TLV */
 static void test_encode_simple(void)
 {
@@ -184,6 +209,39 @@ static void test_encode_nested(void)
     g_assert_cmpint(result_len, ==, -1);
 }
 
+static void test_encode_skipped(void)
+{
+    unsigned char *result = NULL;
+    size_t result_len = 0;
+    unsigned char simple_value[] = "\x12\x14";
+    unsigned char simple_value2[] = "\x16\x18";
+    static struct simpletlv_member simple[2] = {
+      {0x25, 2, {/*.value = simple_value*/}, SIMPLETLV_TYPE_LEAF},
+      {0x30, 2, {/*.value = simple_value2*/}, SIMPLETLV_TYPE_NONE}
+    };
+    unsigned char encoded[] = "\x25\x02\x12\x14";
+    simple[0].value.value = simple_value;
+    simple[1].value.value = simple_value2;
+
+    /* Simple short value to TLV */
+    result = NULL;
+    result_len = simpletlv_encode(simple, 2, &result, 0, NULL);
+    g_assert_cmpmem(result, result_len, encoded, 4);
+    g_free(result);
+
+    /* Simple short value to TL */
+    result = NULL;
+    result_len = simpletlv_encode_tl(simple, 2, &result, 0, NULL);
+    g_assert_cmpmem(result, result_len, "\x25\x02", 2);
+    g_free(result);
+
+    /* Simple short value to V */
+    result = NULL;
+    result_len = simpletlv_encode_val(simple, 2, &result, 0, NULL);
+    g_assert_cmpmem(result, result_len, "\x12\x14", 2);
+    g_free(result);
+}
+
 int main(int argc, char *argv[])
 {
     int ret;
@@ -194,8 +252,10 @@ int main(int argc, char *argv[])
 
     g_test_add_func("/simpletlv/length/simple", test_length_simple);
     g_test_add_func("/simpletlv/length/nested", test_length_nested);
+    g_test_add_func("/simpletlv/length/skipped", test_length_skipped);
     g_test_add_func("/simpletlv/encode/simple", test_encode_simple);
     g_test_add_func("/simpletlv/encode/nested", test_encode_nested);
+    g_test_add_func("/simpletlv/encode/skipped", test_encode_skipped);
 
     ret = g_test_run();
 

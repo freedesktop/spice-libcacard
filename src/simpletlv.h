@@ -25,8 +25,9 @@
 #define _SIMPLETLV_H
 
 enum simpletlv_type {
-    SIMPLETLV_TYPE_LEAF = 0,
-    SIMPLETLV_TYPE_COMPOUND = 1
+    SIMPLETLV_TYPE_NONE = 0,
+    SIMPLETLV_TYPE_LEAF = 1,
+    SIMPLETLV_TYPE_COMPOUND = 2
 };
 
 enum simpletlv_buffer_type {

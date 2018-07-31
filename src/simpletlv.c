@@ -42,10 +42,14 @@ simpletlv_get_length(struct simpletlv_member *tlv, size_t tlv_len,
     int child_length;
 
     for (i = 0; i < tlv_len; i++) {
+        /* This TLV is skipped */
+        if (tlv[i].type == SIMPLETLV_TYPE_NONE)
+            continue;
+
         /* We can not unambiguously split the buffers
          * for recursive structures
          */
-        if (tlv[i].type != SIMPLETLV_TYPE_LEAF
+        if (tlv[i].type == SIMPLETLV_TYPE_COMPOUND
             && buffer_type != SIMPLETLV_BOTH)
             return -1;
 
@@ -100,6 +104,11 @@ simpletlv_encode_internal(struct simpletlv_member *tlv, size_t tlv_len,
     p_len = tmp_len;
     for (i = 0; i < tlv_len; i++) {
         size_t child_length = tlv[i].length;
+
+        /* This TLV is skipped */
+        if (tlv[i].type == SIMPLETLV_TYPE_NONE)
+            continue;
+
         if (tlv[i].type == SIMPLETLV_TYPE_COMPOUND) {
             child_length = simpletlv_get_length(tlv[i].value.child,
                 tlv[i].length, SIMPLETLV_BOTH);

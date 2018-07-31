@@ -493,6 +493,7 @@ vreader_emul_delete(VReaderEmul *vreader_emul)
     if (vreader_emul == NULL) {
         return;
     }
+    vcard_free(vreader_emul->saved_vcard);
     if (vreader_emul->slot) {
         PK11_FreeSlot(vreader_emul->slot);
     }

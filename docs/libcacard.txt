@@ -485,4 +485,5 @@ src/common.h - header file utilities functions
 src/simpletlv.c - Simple TLV encoding functions
 src/simpletlv.h - header file for Simple TLV encoding helpers
 tests/libcacard.c - Test for the whole smart card emulation
+tests/simpletlv.c - Unit tests for SimpleTLV encoding and decoding functions
 

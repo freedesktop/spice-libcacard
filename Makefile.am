@@ -68,8 +68,18 @@ endif
 
 include $(srcdir)/build-aux/glib-tap.mk
 
-test_programs = tests/libcacard
-tests_libcacard_LDADD = libcacard.la $(GTHREAD_LIBS)
+test_programs =					\
+	tests/libcacard				\
+	tests/simpletlv				\
+	$(NULL)
+
+tests_libcacard_LDADD = libcacard.la
+
+tests_simpletlv_LDADD =				\
+	libcacard.la				\
+	src/common.lo				\
+	src/simpletlv.lo			\
+	$(NULL)
 
 @CODE_COVERAGE_RULES@
 

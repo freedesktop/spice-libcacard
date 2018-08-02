@@ -25,6 +25,20 @@ static unsigned char cac_aca_aid[] = {
     0xa0, 0x00, 0x00, 0x00, 0x79, 0x03, 0x00 };
 static unsigned char cac_ccc_aid[] = {
     0xa0, 0x00, 0x00, 0x01, 0x16, 0xDB, 0x00 };
+static unsigned char cac_02fb_aid[] = {
+    0xa0, 0x00, 0x00, 0x00, 0x79, 0x02, 0xFB };
+static unsigned char cac_1201_aid[] = {
+    0xa0, 0x00, 0x00, 0x00, 0x79, 0x12, 0x01 };
+static unsigned char cac_1202_aid[] = {
+    0xa0, 0x00, 0x00, 0x00, 0x79, 0x12, 0x02 };
+static unsigned char cac_02f0_aid[] = {
+    0xa0, 0x00, 0x00, 0x00, 0x79, 0x02, 0xF0 };
+static unsigned char cac_02f1_aid[] = {
+    0xa0, 0x00, 0x00, 0x00, 0x79, 0x02, 0xF1 };
+static unsigned char cac_02f2_aid[] = {
+    0xa0, 0x00, 0x00, 0x00, 0x79, 0x02, 0xF2 };
+static unsigned char cac_access_control_aid[] = {
+    0xa0, 0x00, 0x00, 0x01, 0x16, 0x30, 0x00 };
 
 
 /* private data for PKI applets */
@@ -44,6 +58,10 @@ typedef struct CACACAAppletDataStruct {
     /* At the moment mostly in cac-aca.c */
 } CACACAAppletData;
 
+struct coid {
+    unsigned char v[2];
+};
+
 /*
  * CAC applet private data
  */
@@ -55,6 +73,12 @@ struct VCardAppletPrivateStruct {
     int val_buffer_len;
     struct simpletlv_member *properties;
     unsigned int properties_len;
+    /* TODO we should also keep a state, which OID is selected,
+     * but it does not matter now, because we do not have anything different
+     * in either buffer
+     */
+    struct coid *coids;
+    unsigned int coids_len;
     /* applet-specific */
     union {
         CACPKIAppletData pki_data;
@@ -196,9 +220,10 @@ cleanup:
 static VCardStatus
 cac_common_process_apdu(VCard *card, VCardAPDU *apdu, VCardResponse **response)
 {
-    int ef;
     VCardAppletPrivate *applet_private;
     VCardStatus ret = VCARD_FAIL;
+    int found = 0;
+    unsigned int i;
 
     applet_private = vcard_get_current_applet_private(card, apdu->a_channel);
 
@@ -268,9 +293,15 @@ cac_common_process_apdu(VCard *card, VCardAPDU *apdu, VCardResponse **response)
             ret = VCARD_DONE;
             break;
         }
-        /* CAC 1.0 only supports ef = 0 */
-        ef = apdu->a_body[0] | (apdu->a_body[1] << 8);
-        if (ef != 0) {
+        /* CAC 2 Card Object ID needs to match one of the COID defined
+         * in the applet
+         */
+        for (i = 0; i < applet_private->coids_len; i++) {
+            if (memcmp(apdu->a_body, applet_private->coids[i].v, 2) == 0) {
+                found = 1;
+            }
+        }
+        if (!found) {
             *response = vcard_make_response(
                 VCARD7816_STATUS_ERROR_FILE_NOT_FOUND);
             ret = VCARD_DONE;
@@ -597,6 +628,7 @@ cac_delete_pki_applet_private(VCardAppletPrivate *applet_private)
     g_free(pki_applet_data->sign_buffer);
     g_free(applet_private->tag_buffer);
     g_free(applet_private->val_buffer);
+    g_free(applet_private->coids);
     /* this one is cloned so needs to be freed */
     simpletlv_free(applet_private->properties, applet_private->properties_len);
     if (pki_applet_data->key != NULL) {
@@ -613,6 +645,7 @@ cac_delete_ccc_applet_private(VCardAppletPrivate *applet_private)
     }
     g_free(applet_private->tag_buffer);
     g_free(applet_private->val_buffer);
+    g_free(applet_private->coids);
     g_free(applet_private);
 }
 
@@ -622,6 +655,21 @@ cac_delete_aca_applet_private(VCardAppletPrivate *applet_private)
     if (applet_private == NULL) {
         return;
     }
+    g_free(applet_private->coids);
+    g_free(applet_private);
+}
+
+static void
+cac_delete_empty_applet_private(VCardAppletPrivate *applet_private)
+{
+    if (applet_private == NULL) {
+        return;
+    }
+    g_free(applet_private->coids);
+    g_free(applet_private->tag_buffer);
+    g_free(applet_private->val_buffer);
+    /* this one is cloned so needs to be freed */
+    simpletlv_free(applet_private->properties, applet_private->properties_len);
     g_free(applet_private);
 }
 
@@ -745,6 +793,11 @@ cac_new_pki_applet_private(int i, const unsigned char *cert,
     /* Inject Object ID */
     object_id[1] = i;
     pki_object[0].value.value = object_id;
+
+    /* Create Object ID list */
+    applet_private->coids = g_malloc(sizeof(struct coid));
+    memcpy(applet_private->coids[0].v, object_id, 2);
+    applet_private->coids_len = 1;
 
     /* Inject T-Buffer and V-Buffer lengths in the properties buffer */
     ushort2lebytes(&buffer_properties[1], applet_private->tag_buffer_len);
@@ -1050,12 +1103,27 @@ failure:
  * 41           Personnel Category Code
  * 4D 57        Pay Plan Code
  * 30 30        Personnel Entitlement Condition Code
- * TODO For real cards, we could try to proxy this from original card,
- * OpenSC exposes this as a data object as SimpleLTV merged in one buffer
+ *
+ * pkcs11-tool --pin 77777777 --read-object --application-label 'Personnel' --type data
+ * OpenSC exposes this as a data object as SimpleLTV merged in one buffer:
+ * 19 00
+ * 20 00
+ * 35 00
+ * 24 01
+ *  4e
+ * 25 02
+ *  30 31
+ * 26 04
+ *  57 4f 2d 31
+ * 34 01
+ *  41
+ * 36 02
+ *  4d 57
+ * d3 02
+ *  30 30
+ * 00 00 fc bf <<< OpenSC bug (junk in the end instead of last encoded elements)
  *
  *
- * A0000001166010: Not actually an applet
- * A0000001166030: Not actually an applet
  *
  *
  * A0000000791201: Empty
@@ -1091,6 +1159,94 @@ failure:
  * $ opensc-tool -s 00A4040007A0000000791202 -s 8052000002020202
  * TAG, VALUE BUFFERS:
  * empty
+ *
+ * A00000007902F0: Empty (no buffers)
+ * $ opensc-tool -s 00A4040007A00000007902F0 -s 8056010000
+ * PROPERTIES:
+ * 01 05
+ *  10 02 06 02 03
+ * 40 01
+ *  00
+ *
+ * A00000007902F1: Empty (no buffers)
+ * $ opensc-tool -s 00A4040007A00000007902F1 -s 8056010000
+ * PROPERTIES:
+ * 01 05
+ *  10 02 06 02 03
+ * 40 01
+ *  00
+ *
+ * A00000007902F2: Empty (no buffers)
+ * $ opensc-tool -s 00A4040007A00000007902F2 -s 8056010000
+ * PROPERTIES:
+ * 01 05
+ *  10 02 06 02 03
+ * 40 01
+ *  00
+ *
+ *
+ * Access Control File
+ * A0000001163000
+ * PROPERTIES: shared among the OIDs
+ * 01 05
+ * 10 02 06 02 03
+ * 40 01        Number of objects
+ *  04
+ * 50 0B        TV Buffer
+ *  41 02       Object ID
+ *   30 00
+ *  42 05
+ *   00         <- These are SimpleTLV
+ *   1A 00 D2 07
+ * 50 0B        TV Buffer
+ *  41 02       Object ID
+ *   60 10
+ *  42 05
+ *   00
+ *   0E 00 BA 0B
+ * 50 0B        TV buffer
+ *  41 02       Object ID
+ *   60 30
+ *  42 05
+ *   00
+ *   0A 00 EE 2C
+ * 50 0B        TV Buffer
+ *  41 02       Object ID
+ *   90 00
+ *  42 05
+ *   00
+ *   0E 00 4E 04
+ *
+ * OID buffers:
+ * :3000
+ * Tag buffer:
+ * 0C 00
+ * 30 19        SEIWG data
+ * 34 10        ??  list of 0x30
+ * 35 08        ??  32 30 31 32 30 34 30 31
+ * 3E FF 1A 06  ??
+ * FE 00        Error detection code
+ * Value buffer:
+ * D4 F8 10 DA 08 26 6C 10 A2 04 E5 83 60 DA 01 0C
+ * 11 CE 66 62 84 38 10 93 E1  <-- SEIWG data
+ *
+ * :6010
+ * Tag buffer:
+ * 06 00
+ * BC FF CF 04  ??
+ * FE 00        Error Detection Code
+ *
+ * :6030
+ * Tag buffer:
+ * 06 00
+ * BC FF A9 29  ??
+ * FE 00        Error Detection Code
+ *
+ * :9000
+ * 08 00
+ * BB FF 38 02  Some PKCS#7 signed block
+ * BA 30        ???
+ * FE 00        Error Detectionc Code
  */
 
 
@@ -1364,6 +1520,11 @@ cac_new_ccc_applet_private(int cert_count)
     /* Inject Object ID */
     tv_object[0].value.value = object_id;
 
+    /* Create Object ID list */
+    applet_private->coids = g_malloc(sizeof(struct coid));
+    memcpy(applet_private->coids[0].v, object_id, 2);
+    applet_private->coids_len = 1;
+
     /* Inject T-Buffer and V-Buffer lengths in the properties buffer */
     ushort2lebytes(&buffer_properties[1], applet_private->tag_buffer_len);
     ushort2lebytes(&buffer_properties[3], applet_private->val_buffer_len);
@@ -1446,6 +1607,12 @@ cac_new_aca_applet_private(int cert_count)
     if (applet_private == NULL)
         goto failure;
 
+    /* store the applet OID */
+    applet_private->coids = g_malloc(sizeof(struct coid));
+    applet_private->coids[0].v[0] = 0x03;
+    applet_private->coids[0].v[1] = 0x00;
+    applet_private->coids_len = 1;
+
     /* Link the properties */
     applet_private->properties = properties;
     applet_private->properties_len = 1;
@@ -1461,6 +1628,107 @@ failure:
     return NULL;
 }
 
+static VCardAppletPrivate *
+cac_new_empty_applet_private(unsigned char objects[][2], unsigned int objects_len)
+{
+    VCardAppletPrivate *applet_private = NULL;
+
+    unsigned char object_id[] = "\x00\x00";
+    unsigned char buffer_properties[] = "\x00\x00\x00\x00\x00";
+    static struct simpletlv_member tv_buffer[] = {
+      {CAC_PROPERTIES_OBJECT_ID, 2, {/*.value = object_id*/},
+          SIMPLETLV_TYPE_LEAF},
+      {CAC_PROPERTIES_BUFFER_PROPERTIES, 5, {/*.value = buffer_properties*/},
+          SIMPLETLV_TYPE_LEAF},
+    };
+    unsigned char applet_information[] = "\x10\x02\x06\x02\x03";
+    unsigned char number_objects = 0;
+    static struct simpletlv_member properties[7] = {
+      {CAC_PROPERTIES_APPLET_INFORMATION, 5, {/*.value = applet_information*/},
+          SIMPLETLV_TYPE_LEAF},
+      {CAC_PROPERTIES_NUMBER_OBJECTS, 1, {/*.value = number_objects*/},
+          SIMPLETLV_TYPE_LEAF},
+      {CAC_PROPERTIES_TV_OBJECT, 2, {.child = NULL},
+          SIMPLETLV_TYPE_COMPOUND},
+      {CAC_PROPERTIES_TV_OBJECT, 2, {.child = NULL},
+          SIMPLETLV_TYPE_COMPOUND},
+      {CAC_PROPERTIES_TV_OBJECT, 2, {.child = NULL},
+          SIMPLETLV_TYPE_COMPOUND},
+      {CAC_PROPERTIES_TV_OBJECT, 2, {.child = NULL},
+          SIMPLETLV_TYPE_COMPOUND},
+      {CAC_PROPERTIES_TV_OBJECT, 2, {.child = NULL},
+          SIMPLETLV_TYPE_COMPOUND},
+    };
+    unsigned properties_len = 2;
+    unsigned int i;
+
+    for (i = 0; i < objects_len; i++) {
+        /* Adjust Object ID based on the AID */
+        object_id[0] = objects[i][0];
+        object_id[1] = objects[i][1];
+
+        /* Create arbitrary sized buffers */
+        buffer_properties[0] = 0x01; // not a SimpleTLV
+        buffer_properties[1] = 0x60;
+        buffer_properties[2] = 0x00;
+        buffer_properties[3] = 0x60;
+        buffer_properties[4] = 0x00;
+
+        /* Inject Object ID */
+        tv_buffer[0].value.value = object_id;
+        tv_buffer[1].value.value = buffer_properties;
+
+        /* clone the object to the structure */
+        properties[2+i].value.child = simpletlv_clone(tv_buffer, 2);
+        if (properties[2+i].value.child == NULL)
+            goto failure;
+
+        properties_len++;
+        number_objects++;
+    }
+
+    /* Inject Applet Version */
+    properties[0].value.value = applet_information;
+    properties[1].value.value = &number_objects;
+
+    /* Create the private data structure */
+    applet_private = g_new0(VCardAppletPrivate, 1);
+    if (applet_private == NULL)
+        goto failure;
+
+    /* Create Object ID list */
+    applet_private->coids = g_malloc_n(objects_len, sizeof(struct coid));
+    memcpy(applet_private->coids, objects, 2*objects_len);
+    applet_private->coids_len = objects_len;
+
+    /* Clone the properties */
+    applet_private->properties_len = properties_len;
+    applet_private->properties = simpletlv_clone(properties, properties_len);
+    if (applet_private->properties == NULL)
+        goto failure;
+
+    /* clean up the allocated properties */
+    for (i = 0; i < number_objects; i++) {
+        simpletlv_free(properties[2+i].value.child, 2);
+    }
+
+    /* tag/value buffers */
+    applet_private->tag_buffer = g_malloc0(2);
+    applet_private->tag_buffer_len = 2;
+    applet_private->val_buffer = g_malloc0(2);
+    applet_private->val_buffer_len = 2;
+
+    return applet_private;
+
+failure:
+    for (i = 0; i < number_objects; i++) {
+        simpletlv_free(properties[2+i].value.child, 3);
+    }
+    if (applet_private != NULL) {
+       cac_delete_aca_applet_private(applet_private);
+    }
+    return NULL;
+}
 
 /*
  * create a new ACA applet
@@ -1530,6 +1798,36 @@ failure:
     return NULL;
 }
 
+static VCardApplet *
+cac_new_empty_applet(unsigned char *aid, unsigned int aid_len,
+                     unsigned char coids[][2], unsigned int coids_len)
+{
+    VCardAppletPrivate *applet_private;
+    VCardApplet *applet;
+
+    applet_private = cac_new_empty_applet_private(coids, coids_len);
+    if (applet_private == NULL) {
+        goto failure;
+    }
+
+    applet = vcard_new_applet(cac_common_process_apdu_read,
+        NULL, aid, aid_len);
+    if (applet == NULL) {
+        goto failure;
+    }
+
+    vcard_set_applet_private(applet, applet_private,
+                             cac_delete_empty_applet_private);
+    applet_private = NULL;
+
+    return applet;
+
+failure:
+    if (applet_private != NULL) {
+        cac_delete_empty_applet_private(applet_private);
+    }
+    return NULL;
+}
 
 /*
  * Initialize the cac card. This is the only public function in this file. All
@@ -1545,6 +1843,13 @@ cac_card_init(VReader *reader, VCard *card,
 {
     int i;
     VCardApplet *applet;
+    unsigned char coids[][2] = {{0x02, 0xfb}};
+    unsigned char acf_coids[][2] = {
+        {0x30, 0x00},
+        {0x60, 0x10},
+        {0x60, 0x30},
+        {0x90, 0x00},
+    };
 
     /* CAC Cards are VM Cards */
     vcard_set_type(card, VCARD_VM);
@@ -1574,6 +1879,61 @@ cac_card_init(VReader *reader, VCard *card,
      * which should be default
      */
     applet = cac_new_ccc_applet(cert_count);
+    if (applet == NULL) {
+        goto failure;
+    }
+    vcard_add_applet(card, applet);
+
+    /* Three more empty applets without buffer */
+    /* 02 F0 */
+    applet = cac_new_empty_applet(cac_02f0_aid, sizeof(cac_02f0_aid), NULL, 0);
+    if (applet == NULL) {
+        goto failure;
+    }
+    vcard_add_applet(card, applet);
+
+    /* 02 F1 */
+    applet = cac_new_empty_applet(cac_02f1_aid, sizeof(cac_02f1_aid), NULL, 0);
+    if (applet == NULL) {
+        goto failure;
+    }
+    vcard_add_applet(card, applet);
+
+    /* 02 F2 */
+    applet = cac_new_empty_applet(cac_02f2_aid, sizeof(cac_02f2_aid), NULL, 0);
+    if (applet == NULL) {
+        goto failure;
+    }
+    vcard_add_applet(card, applet);
+
+    /* Empty generic applet (0x02FB) */
+    applet = cac_new_empty_applet(cac_02fb_aid, sizeof(cac_02fb_aid),
+        coids, 1);
+    if (applet == NULL) {
+        goto failure;
+    }
+    vcard_add_applet(card, applet);
+
+    /* Empty generic applet (0x1201) */
+    coids[0][0] = 0x12;
+    coids[0][1] = 0x01;
+    applet = cac_new_empty_applet(cac_1201_aid, sizeof(cac_1201_aid), coids, 1);
+    if (applet == NULL) {
+        goto failure;
+    }
+    vcard_add_applet(card, applet);
+
+    /* Empty generic applet (0x1202) */
+    coids[0][1] = 0x02;
+    applet = cac_new_empty_applet(cac_1202_aid, sizeof(cac_1202_aid), coids, 1);
+    if (applet == NULL) {
+        goto failure;
+    }
+    vcard_add_applet(card, applet);
+
+    /* Access Control File */
+    applet = cac_new_empty_applet(cac_access_control_aid,
+        sizeof(cac_access_control_aid), acf_coids, 4);
     if (applet == NULL) {
         goto failure;
     }

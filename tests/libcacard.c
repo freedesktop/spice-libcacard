@@ -12,9 +12,10 @@ static GMutex mutex;
 static GCond cond;
 
 enum {
-    TEST_PKI,
-    TEST_CCC,
-    TEST_ACA
+    TEST_PKI = 1,
+    TEST_CCC = 2,
+    TEST_ACA = 3,
+    TEST_GENERIC = 4
 };
 
 static gpointer
@@ -150,7 +151,8 @@ static void test_xfer(void)
     vreader_free(reader); /* get by id ref */
 }
 
-static void get_properties(VReader *reader, int object_type)
+static void get_properties_coid(VReader *reader, const unsigned char coid[2],
+                                int object_type)
 {
     int dwRecvLength = APDUBufSize;
     VReaderStatus status;
@@ -197,8 +199,8 @@ static void get_properties(VReader *reader, int object_type)
             g_debug("The generated SimpleTLV can not be parsed");
             g_assert_not_reached();
         }
-        g_assert_cmpint(vlen, <=, p_end - p);
         g_debug("Tag: 0x%02x, Len: %lu", tag, vlen);
+        g_assert_cmpint(vlen, <=, p_end - p);
 
         switch (tag) {
         case 0x01: /* Applet Information */
@@ -233,20 +235,13 @@ static void get_properties(VReader *reader, int object_type)
 
                 switch (tag2) {
                 case 0x41: /* Object ID */
-                    if (object_type == TEST_PKI) {
-                        // XXX only the first PKI for now
-                        g_assert_cmpmem(p2, vlen2, "\x01\x00", 2);
-                    } else if (object_type == TEST_CCC) {
-                        g_assert_cmpmem(p2, vlen2, "\xDB\x00", 2);
-                    } else {
-                        g_debug("Got unknown object type");
-                        g_assert_not_reached();
-                    }
+                    g_assert_cmpmem(p2, vlen2, coid, 2);
                     break;
 
                 case 0x42: /* Buffer properties */
                     g_assert_cmpint(vlen2, ==, 5);
-                    g_assert_cmpint(p2[0], ==, 0x00);
+                    if (object_type != TEST_GENERIC)
+                        g_assert_cmpint(p2[0], ==, 0x00);
                     break;
 
                 case 0x43: /* PKI properties */
@@ -284,6 +279,7 @@ static void get_properties(VReader *reader, int object_type)
 
     g_assert_cmpint(have_applet_information, ==, 1);
 
+    /* Try to list only some properties */
     dwRecvLength = APDUBufSize;
     status = vreader_xfr_bytes(reader,
                                get_properties_tag, sizeof(get_properties_tag),
@@ -303,6 +299,35 @@ static void get_properties(VReader *reader, int object_type)
     g_assert_cmpint(dwRecvLength, ==, 16); /* Two applet information buffers + status */
     g_assert_cmpint(pbRecvBuffer[dwRecvLength-2], ==, VCARD7816_SW1_SUCCESS);
     g_assert_cmpint(pbRecvBuffer[dwRecvLength-1], ==, 0x00);
+}
+
+static void get_properties(VReader *reader, int object_type)
+{
+    unsigned char coid[2];
+    switch (object_type) {
+    case TEST_PKI:
+        // XXX only the first PKI for now
+        coid[0] = 0x01;
+        coid[1] = 0x00;
+        get_properties_coid(reader, coid, object_type);
+        break;
+
+    case TEST_CCC:
+        coid[0] = 0xDB;
+        coid[1] = 0x00;
+        get_properties_coid(reader, coid, object_type);
+        break;
+
+    case TEST_ACA:
+        coid[0] = 0x03;
+        coid[1] = 0x00;
+        get_properties_coid(reader, coid, object_type);
+        break;
+
+    default:
+        g_debug("Got unknown object type");
+        g_assert_not_reached();
+    }
 }
 
 static void parse_acr(uint8_t *buf, int buflen)
@@ -559,10 +584,13 @@ static void read_buffer(VReader *reader, uint8_t type, int object_type)
                                pbRecvBuffer, &dwRecvLength);
     g_assert_cmpint(status, ==, VREADER_OK);
     g_assert_cmpint(dwRecvLength, ==, 4);
-    g_assert_cmphex(pbRecvBuffer[2], ==, VCARD7816_SW1_SUCCESS);
-    g_assert_cmphex(pbRecvBuffer[3], ==, 0x00);
+    g_assert_cmphex(pbRecvBuffer[dwRecvLength-2], ==, VCARD7816_SW1_SUCCESS);
+    g_assert_cmphex(pbRecvBuffer[dwRecvLength-1], ==, 0x00);
 
     dwLength = (pbRecvBuffer[0] & 0xff) | ((pbRecvBuffer[1] << 8) & 0xff);
+    if (dwLength == 0)
+        return;
+
     data = g_malloc(dwLength);
     offset = 0x02;
     do {
@@ -617,47 +645,21 @@ static void read_buffer(VReader *reader, uint8_t type, int object_type)
     g_free(data);
 }
 
-static void select_aid(VReader *reader, int type)
+static void select_aid(VReader *reader, unsigned char *aid, unsigned int aid_len)
 {
     VReaderStatus status;
     int dwRecvLength = APDUBufSize;
     uint8_t pbRecvBuffer[APDUBufSize];
-    uint8_t selfile_ccc[] = {
-        /* Select CCC Applet */
-        0x00, 0xa4, 0x04, 0x00, 0x07, 0xa0, 0x00, 0x00, 0x01, 0x16, 0xDB, 0x00
-    };
-    uint8_t selfile_aca[] = {
-        /* Select ACA Applet */
-        0x00, 0xa4, 0x04, 0x00, 0x07, 0xa0, 0x00, 0x00, 0x00, 0x79, 0x03, 0x00
-    };
-    uint8_t selfile_pki[] = {
-        /* Select first PKI Applet */
+    uint8_t selfile[] = {
         0x00, 0xa4, 0x04, 0x00, 0x07, 0xa0, 0x00, 0x00, 0x00, 0x79, 0x01, 0x00
     };
-    uint8_t *selfile = NULL;
-    size_t selfile_len = 0;
+    size_t selfile_len = sizeof(selfile);
 
-    switch (type) {
-    case TEST_PKI:
-        selfile = selfile_pki;
-        selfile_len = sizeof(selfile_pki);
-        break;
+    g_assert_cmpint(aid_len, ==, 7);
+    memcpy(&selfile[5], aid, aid_len);
 
-    case TEST_CCC:
-        selfile = selfile_ccc;
-        selfile_len = sizeof(selfile_ccc);
-        break;
-
-    case TEST_ACA:
-        selfile = selfile_aca;
-        selfile_len = sizeof(selfile_aca);
-        break;
-
-    default:
-        g_assert_not_reached();
-    }
-    g_assert_nonnull(selfile);
-
+    g_debug("%s: Add applet with AID 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x",
+        __func__, aid[0], aid[1], aid[2], aid[3], aid[4], aid[5], aid[6]);
     g_assert_nonnull(reader);
     status = vreader_xfr_bytes(reader,
                                selfile, selfile_len,
@@ -665,6 +667,47 @@ static void select_aid(VReader *reader, int type)
     g_assert_cmpint(status, ==, VREADER_OK);
     g_assert_cmphex(pbRecvBuffer[dwRecvLength-2], ==, VCARD7816_SW1_RESPONSE_BYTES);
     g_assert_cmphex(pbRecvBuffer[dwRecvLength-1], >, 0);
+}
+
+static void select_applet(VReader *reader, int type)
+{
+    uint8_t selfile_ccc[] = {
+        /* Select CCC Applet */
+        0xa0, 0x00, 0x00, 0x01, 0x16, 0xDB, 0x00
+    };
+    uint8_t selfile_aca[] = {
+        /* Select ACA Applet */
+        0xa0, 0x00, 0x00, 0x00, 0x79, 0x03, 0x00
+    };
+    uint8_t selfile_pki[] = {
+        /* Select first PKI Applet */
+        0xa0, 0x00, 0x00, 0x00, 0x79, 0x01, 0x00
+    };
+    uint8_t *aid = NULL;
+    size_t aid_len = 0;
+
+    switch (type) {
+    case TEST_PKI:
+        aid = selfile_pki;
+        aid_len = sizeof(selfile_pki);
+        break;
+
+    case TEST_CCC:
+        aid = selfile_ccc;
+        aid_len = sizeof(selfile_ccc);
+        break;
+
+    case TEST_ACA:
+        aid = selfile_aca;
+        aid_len = sizeof(selfile_aca);
+        break;
+
+    default:
+        g_assert_not_reached();
+    }
+    g_assert_nonnull(aid);
+
+    select_aid(reader, aid, aid_len);
 }
 
 static void do_login(VReader *reader)
@@ -740,7 +783,7 @@ static void test_cac_pki(void)
     VReader *reader = vreader_get_reader_by_id(0);
 
     /* select the first PKI applet */
-    select_aid(reader, TEST_PKI);
+    select_applet(reader, TEST_PKI);
 
     /* get properties */
     get_properties(reader, TEST_PKI);
@@ -759,7 +802,7 @@ static void test_cac_ccc(void)
     VReader *reader = vreader_get_reader_by_id(0);
 
     /* select the CCC */
-    select_aid(reader, TEST_CCC);
+    select_applet(reader, TEST_CCC);
 
     /* get properties */
     get_properties(reader, TEST_CCC);
@@ -778,7 +821,7 @@ static void test_cac_aca(void)
     VReader *reader = vreader_get_reader_by_id(0);
 
     /* select the ACA */
-    select_aid(reader, TEST_ACA);
+    select_applet(reader, TEST_ACA);
 
     /* get properties */
     get_properties(reader, TEST_ACA);
@@ -794,7 +837,7 @@ static void test_login(void)
     VReader *reader = vreader_get_reader_by_id(0);
 
     /* select the ACA */
-    select_aid(reader, TEST_ACA);
+    select_applet(reader, TEST_ACA);
 
     do_login(reader);
 
@@ -806,12 +849,12 @@ static void test_sign(void)
     VReader *reader = vreader_get_reader_by_id(0);
 
     /* select the ACA */
-    select_aid(reader, TEST_ACA);
+    select_applet(reader, TEST_ACA);
 
     do_login(reader);
 
     /* select the PKI */
-    select_aid(reader, TEST_PKI);
+    select_applet(reader, TEST_PKI);
 
     do_sign(reader);
 
@@ -853,7 +896,7 @@ static void test_get_response(void)
     };
 
     /* select CCC */
-    select_aid(reader, TEST_CCC);
+    select_applet(reader, TEST_CCC);
 
     /* read buffer without response buffer */
     dwRecvLength = 2;
@@ -875,6 +918,30 @@ static void test_get_response(void)
     g_assert_cmpint(dwRecvLength, ==, 4);
     g_assert_cmphex(pbRecvBuffer[2], ==, VCARD7816_SW1_SUCCESS);
     g_assert_cmphex(pbRecvBuffer[3], ==, 0x00);
+
+    vreader_free(reader); /* get by id ref */
+}
+
+static void test_other_applets(void)
+{
+    uint8_t applet_02fb[] = {
+        /*Read Buffer  OFFSET         TYPE LENGTH */
+        0xA0, 0x00, 0x00, 0x00, 0x79, 0x02, 0xFB
+    };
+    uint8_t coid[2] = {0x02, 0xFB};
+    VReader *reader = vreader_get_reader_by_id(0);
+
+    /* select the empty applet A00000007902FB, which should be empty*/
+    select_aid(reader, applet_02fb, sizeof(applet_02fb));
+
+    /* get properties */
+    get_properties_coid(reader, coid, TEST_GENERIC);
+
+    /* get the TAG buffer length */
+    read_buffer(reader, CAC_FILE_TAG, TEST_GENERIC);
+
+    /* get the VALUE buffer length */
+    read_buffer(reader, CAC_FILE_VALUE, TEST_GENERIC);
 
     vreader_free(reader); /* get by id ref */
 }
@@ -913,6 +980,7 @@ int main(int argc, char *argv[])
     g_test_add_func("/libcacard/get-response", test_get_response);
     g_test_add_func("/libcacard/login", test_login);
     g_test_add_func("/libcacard/sign", test_sign);
+    g_test_add_func("/libcacard/other-applets", test_other_applets);
     g_test_add_func("/libcacard/remove", test_remove);
 
     ret = g_test_run();

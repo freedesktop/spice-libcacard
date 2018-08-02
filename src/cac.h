@@ -25,6 +25,8 @@
 /* PKI applet tags */
 #define CAC_PKI_TAG_CERTIFICATE               0x70
 #define CAC_PKI_TAG_CERTINFO                  0x71
+#define CAC_PKI_TAG_MSCUID                    0x72
+#define CAC_PKI_TAG_ERROR_DETECTION_CODE      0xFE
 
 /* ACA applet tags */
 #define CAC_ACR_NUM_ENTRIES                   0xA1

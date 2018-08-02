@@ -506,52 +506,6 @@ static void test_remove(void)
     g_assert_null(reader);
 }
 
-/*
- * Check that access method without provided buffer returns valid
- * SW and allow us to get the response with the following APDU
- */
-static void test_get_response(void)
-{
-    VReader *reader = vreader_get_reader_by_id(0);
-    int dwRecvLength = APDUBufSize;
-    VReaderStatus status;
-    uint8_t pbRecvBuffer[APDUBufSize];
-    uint8_t getresp[] = {
-        /* Get Response (max we can get) */
-        0x00, 0xc0, 0x00, 0x00, 0x00
-    };
-    uint8_t read_buffer[] = {
-        /*Read Buffer  OFFSET         TYPE LENGTH */
-        0x80, 0x52, 0x00, 0x00, 0x02, 0x01, 0x02 /* no L_e */
-    };
-
-    /* select CCC */
-    select_applet(reader, TEST_CCC);
-
-    /* read buffer without response buffer */
-    dwRecvLength = 2;
-    read_buffer[5] = 0x01;
-    status = vreader_xfr_bytes(reader,
-                               read_buffer, sizeof(read_buffer),
-                               pbRecvBuffer, &dwRecvLength);
-    g_assert_cmpint(status, ==, VREADER_OK);
-    g_assert_cmpint(dwRecvLength, ==, 2);
-    g_assert_cmpint(pbRecvBuffer[0], ==, VCARD7816_SW1_RESPONSE_BYTES);
-    g_assert_cmpint(pbRecvBuffer[1], ==, 0x02);
-
-    /* fetch the actual response */
-    dwRecvLength = 4;
-    status = vreader_xfr_bytes(reader,
-                               getresp, sizeof(getresp),
-                               pbRecvBuffer, &dwRecvLength);
-    g_assert_cmpint(status, ==, VREADER_OK);
-    g_assert_cmpint(dwRecvLength, ==, 4);
-    g_assert_cmphex(pbRecvBuffer[2], ==, VCARD7816_SW1_SUCCESS);
-    g_assert_cmphex(pbRecvBuffer[3], ==, 0x00);
-
-    vreader_free(reader); /* get by id ref */
-}
-
 static void libcacard_finalize(void)
 {
     VReader *reader = vreader_get_reader_by_id(0);

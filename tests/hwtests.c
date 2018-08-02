@@ -104,6 +104,7 @@ static void test_list(void)
         if (vreader_card_is_present(r) == VREADER_OK) {
             cards++;
         }
+        vreader_free(r);
     }
     if (cards == 0) {
         vreader_list_delete(list);
@@ -151,6 +152,7 @@ static void test_passthrough_applets(void)
 
     /* Skip the HW tests without physical card */
     if (vreader_card_is_present(reader) != VREADER_OK) {
+        vreader_free(reader);
         g_test_skip("No physical card found");
         return;
     }
@@ -192,6 +194,7 @@ static void test_login(void)
 
     /* Skip the HW tests without physical card */
     if (vreader_card_is_present(reader) != VREADER_OK) {
+        vreader_free(reader);
         g_test_skip("No physical card found");
         return;
     }
@@ -210,6 +213,7 @@ static void test_sign(void)
 
     /* Skip the HW tests without physical card */
     if (vreader_card_is_present(reader) != VREADER_OK) {
+        vreader_free(reader);
         g_test_skip("No physical card found");
         return;
     }
@@ -243,7 +247,25 @@ static void test_empty_applets_hw(void) {
 
     vreader_free(reader); /* get by id ref */
 
+    /* run the actual test */
     test_empty_applets();
+}
+
+static void test_get_response_hw(void) {
+
+    VReader *reader = vreader_get_reader_by_id(0);
+
+    /* Skip the HW tests without physical card */
+    if (vreader_card_is_present(reader) != VREADER_OK) {
+        vreader_free(reader);
+        g_test_skip("No physical card found");
+        return;
+    }
+
+    vreader_free(reader); /* get by id ref */
+
+    /* run the actual test */
+    test_get_response();
 }
 
 static void libcacard_finalize(void)
@@ -276,6 +298,7 @@ int main(int argc, char *argv[])
     g_test_add_func("/hw-tests/login", test_login);
     g_test_add_func("/hw-tests/sign", test_sign);
     g_test_add_func("/hw-tests/empty-applets", test_empty_applets_hw);
+    g_test_add_func("/hw-tests/get-response", test_get_response_hw);
 
     ret = g_test_run();
 

@@ -1111,6 +1111,7 @@ int main(int argc, char *argv[])
     g_test_add_func("/libcacard/invalid-acr", test_invalid_acr);
     /* Even without the card, the passthrough applets are present */
     g_test_add_func("/libcacard/passthrough-applet", test_passthrough_applet);
+    /* TODO: Card/reader resets + ATR tests */
     g_test_add_func("/libcacard/remove", test_remove);
 
     ret = g_test_run();

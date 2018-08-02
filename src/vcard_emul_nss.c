@@ -213,6 +213,28 @@ vcard_emul_map_error(int error)
     return VCARD7816_STATUS_EXC_ERROR_CHANGE;
 }
 
+/* get RSA bits */
+int
+vcard_emul_rsa_bits(VCardKey *key)
+{
+    SECKEYPublicKey *pub_key;
+    int bits = -1;
+
+    if (key == NULL) {
+        /* couldn't get the key, indicate that we aren't logged in */
+        return -1;
+    }
+    pub_key = CERT_ExtractPublicKey(key->cert);
+    if (pub_key == NULL) {
+        /* couldn't get the key, indicate that we aren't logged in */
+        return -1;
+    }
+
+    bits = SECKEY_PublicKeyStrengthInBits(pub_key);
+    SECKEY_DestroyPublicKey(pub_key);
+    return bits;
+}
+
 /* RSA sign/decrypt with the key, signature happens 'in place' */
 vcard_7816_status_t
 vcard_emul_rsa_op(VCard *card, VCardKey *key,

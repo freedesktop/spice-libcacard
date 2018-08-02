@@ -350,6 +350,10 @@ and applet.
 
      This function does a raw rsa op on the buffer with the given key.
 
+         int vcard_emul_rsa_bits(VCardKey *key);
+
+     This function returns the size of RSA key in bits.
+
 The sample card type emulator is found in cac.c. It implements the cac specific
 applets.  Only those applets needed by the coolkey pkcs#11 driver on the guest
 have been implemented. To support the full range CAC middleware, a complete CAC

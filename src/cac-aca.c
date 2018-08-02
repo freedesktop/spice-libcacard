@@ -54,6 +54,8 @@ struct acr_access_method {
 struct acr_entry {
     unsigned char acrid;
     unsigned char acrtype;
+    /* No idea what does this mean, but it is used in the extended properties */
+    unsigned char applet_id;
     unsigned int num_access_methods;
     struct acr_access_method access_methods[MAX_ACCESS_METHODS];
 };
@@ -131,31 +133,31 @@ struct acr_table {
  */
 struct acr_table acr_table = {
     11, {
-        {0x00, ACR_ALWAYS, 0},
-        {0x01, ACR_NEVER, 0},
-        {0x02, ACR_ALWAYS, 0},
-        {0x06, ACR_PIN, 1, {
+        {0x00, ACR_ALWAYS, 0x00, 0},
+        {0x01, ACR_NEVER, 0x00, 0},
+        {0x02, ACR_ALWAYS, 0x1F, 0},
+        {0x06, ACR_PIN, 0x00, 1, {
             {0x1E, 0x00}
         }},
-        {0x04, ACR_SECURE_CHANNEL_GP, 1, {
+        {0x04, ACR_SECURE_CHANNEL_GP, 0x1F, 1, {
             {0x1F, 0x21}
         }},
-        {0x08, ACR_XAUTH_OR_PIN, 2, {
+        {0x08, ACR_XAUTH_OR_PIN, 0x00, 2, {
             {0x1D, 0x01},
             {0x1E, 0x01}
         }},
-        {0x09, ACR_XAUTH, 1, {
+        {0x09, ACR_XAUTH, 0x00, 1, {
             {0x1D, 0x01}
         }},
-        {0x0A, ACR_XAUTH_OR_PIN, 2, {
+        {0x0A, ACR_XAUTH_OR_PIN, 0x00, 2, {
             {0x1D, 0x03},
             {0x1E, 0x01}
         }},
-        {0x0B, ACR_XAUTH, 1, {
+        {0x0B, ACR_XAUTH, 0x00, 1, {
             {0x1D, 0x0}
         }},
-        {0x10, ACR_ALWAYS, 0},
-        {0x11, ACR_ALWAYS, 0},
+        {0x10, ACR_ALWAYS, 0x1E, 0},
+        {0x11, ACR_ALWAYS, 0x1D, 0},
     }
 };
 

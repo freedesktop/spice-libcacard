@@ -1327,6 +1327,57 @@ vcard_emul_options(const char *args)
     return opts;
 }
 
+unsigned char *
+vcard_emul_read_object(VCard *card, const char *label,
+    unsigned int *ret_len)
+{
+    PK11SlotInfo *slot;
+    PK11GenericObject *obj, *firstObj, *myObj = NULL;
+    SECItem result;
+    SECStatus r;
+
+    slot = vcard_emul_card_get_slot(card);
+
+    firstObj = PK11_FindGenericObjects(slot, CKO_DATA);
+    g_debug("%s: Search for generic objects: got %p", __func__, firstObj);
+    for (obj = firstObj; obj; obj = PK11_GetNextGenericObject(obj)) {
+        int found = 0;
+        r = PK11_ReadRawAttribute(PK11_TypeGeneric, obj,
+            CKA_LABEL, &result);
+        if (r != SECSuccess) {
+            PK11_DestroyGenericObjects(firstObj);
+            return NULL;
+        }
+
+        if (strlen(label) == result.len
+            && memcmp(label, result.data, result.len) == 0)
+            found = 1;
+
+        free(result.data);
+        result.data = NULL;
+
+        if (found) {
+            PK11_UnlinkGenericObject(obj);
+            myObj = obj;
+            break;
+        }
+    }
+    PK11_DestroyGenericObjects(firstObj);
+
+    if (!myObj)
+        return NULL;
+
+    r = PK11_ReadRawAttribute(PK11_TypeGeneric, myObj,
+        CKA_VALUE, &result);
+    PK11_DestroyGenericObject(myObj);
+    if (r != SECSuccess)
+        return NULL;
+
+    *ret_len = result.len;
+    return result.data;
+
+}
+
 void
 vcard_emul_usage(void)
 {

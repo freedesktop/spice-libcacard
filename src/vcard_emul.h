@@ -64,4 +64,8 @@ VCardEmulOptions *vcard_emul_options(const char *args);
 VCardEmulError vcard_emul_init(const VCardEmulOptions *options);
 void vcard_emul_replay_insertion_events(void);
 void vcard_emul_usage(void);
+
+unsigned char *vcard_emul_read_object(VCard *card, const char *label,
+                                      unsigned int *ret_len);
+
 #endif

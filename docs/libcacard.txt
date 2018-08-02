@@ -354,6 +354,14 @@ and applet.
 
      This function returns the size of RSA key in bits.
 
+         unsigned char *vcard_emul_read_object(VCard *card,
+                                               const unsigned char *label,
+                                               unsigned int *ret_len);
+
+     This function reads generic data from underlying smart card by the label,
+     if avaialble.
+
+
 The sample card type emulator is found in cac.c. It implements the cac specific
 applets.  Only those applets needed by the coolkey pkcs#11 driver on the guest
 have been implemented. To support the full range CAC middleware, a complete CAC

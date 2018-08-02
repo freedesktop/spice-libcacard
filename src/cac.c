@@ -20,12 +20,20 @@
 #include "simpletlv.h"
 #include "common.h"
 
+static unsigned char cac_ccc_aid[] = {
+    0xa0, 0x00, 0x00, 0x01, 0x16, 0xDB, 0x00 };
+
+
 /* private data for PKI applets */
 typedef struct CACPKIAppletDataStruct {
     unsigned char *sign_buffer;
     int sign_buffer_len;
     VCardKey *key;
 } CACPKIAppletData;
+
+/* private data for CCC container */
+typedef struct CACCCCAppletDataStruct {
+} CACCCCAppletData;
 
 /*
  * CAC applet private data
@@ -41,6 +49,7 @@ struct VCardAppletPrivateStruct {
     /* applet-specific */
     union {
         CACPKIAppletData pki_data;
+        CACCCCAppletData ccc_data;
         void *reserved;
     } u;
 };
@@ -474,31 +483,6 @@ cac_applet_id_process_apdu(VCard *card, VCardAPDU *apdu,
     return ret;
 }
 
-
-/*
- * TODO: if we ever want to support general CAC middleware, we will need to
- * implement the various containers.
- */
-static VCardStatus
-cac_applet_container_process_apdu(VCard *card, VCardAPDU *apdu,
-                                  VCardResponse **response)
-{
-    VCardStatus ret = VCARD_FAIL;
-
-    switch (apdu->a_ins) {
-    case CAC_READ_BUFFER:
-    case CAC_UPDATE_BUFFER:
-        *response = vcard_make_response(
-                        VCARD7816_STATUS_ERROR_COMMAND_NOT_SUPPORTED);
-        ret = VCARD_DONE;
-        break;
-    default:
-        ret = cac_common_process_apdu(card, apdu, response);
-        break;
-    }
-    return ret;
-}
-
 /*
  * utilities for creating and destroying the private applet data
  */
@@ -519,6 +503,17 @@ cac_delete_pki_applet_private(VCardAppletPrivate *applet_private)
     if (pki_applet_data->key != NULL) {
         vcard_emul_delete_key(pki_applet_data->key);
     }
+    g_free(applet_private);
+}
+
+static void
+cac_delete_ccc_applet_private(VCardAppletPrivate *applet_private)
+{
+    if (applet_private == NULL) {
+        return;
+    }
+    g_free(applet_private->tag_buffer);
+    g_free(applet_private->val_buffer);
     g_free(applet_private);
 }
 
@@ -676,6 +671,312 @@ failure:
 }
 
 
+static VCardAppletPrivate *
+cac_new_ccc_applet_private(int cert_count)
+{
+    VCardAppletPrivate *applet_private;
+
+    /* CCC applet Properties ex.:
+     * 01  Tag: Applet Information
+     * 05  Length
+     *    10  Applet family
+     *    02 06 02 03  Applet version
+     * 40  Tag: Number of objects managed by this instance
+     * 01  Length
+     *    01  One
+     * 50  Tag: First TV-Buffer Object
+     * 0B  Length
+     *    41  Tag: ObjectID
+     *    02  Length
+     *       DB 00
+     *    42  Tag: Buffer Properties
+     *    05  Length
+     *       00  Type of Tag Supported
+     *       F6 00 T-Buffer length (LSB, MSB)
+     *       04 02 V-Buffer length (LSB, MSB)
+     */
+    static unsigned char object_id[] = "\xDB\x00";
+    static unsigned char buffer_properties[] = "\x00\x00\x00\x00\x00";
+    static struct simpletlv_member tv_object[2] = {
+      {CAC_PROPERTIES_OBJECT_ID, 2, {/*.value = object_id*/},
+          SIMPLETLV_TYPE_LEAF},
+      {CAC_PROPERTIES_BUFFER_PROPERTIES, 5, {/*.value = buffer_properties*/},
+          SIMPLETLV_TYPE_LEAF},
+    };
+    static unsigned char applet_information[] = "\x10\x02\x06\x02\x03";
+    static unsigned char number_objects[] = "\x01";
+    static struct simpletlv_member properties[] = {
+      {CAC_PROPERTIES_APPLET_INFORMATION, 5, {/*.value = applet_information*/},
+          SIMPLETLV_TYPE_LEAF},
+      {CAC_PROPERTIES_NUMBER_OBJECTS, 1, {/*.value = number_objects */},
+          SIMPLETLV_TYPE_LEAF},
+      {CAC_PROPERTIES_TV_OBJECT, 2, {/*.child = tv_object*/},
+          SIMPLETLV_TYPE_COMPOUND},
+    };
+    size_t properties_len = sizeof(properties)/sizeof(struct simpletlv_member);
+
+    unsigned char card_identifier[] = "\xA0\x00\x00\x00\x79\x03\x02\x40\x70\x50"
+        "\x72\x36\x0E\x00\x00\x58\xBD\x00\x2C\x19\xB5";
+    unsigned char cc_version[] = "\x21";
+    unsigned char cg_version[] = "\x21";
+    unsigned char pki_cardurl[] =
+        "\xA0\x00\x00\x00\x79\x04\x01\x00\x01\x00\x00\x00\x00\x00\x00\x00";
+    unsigned char cardurl[14][16] = {
+        "\xA0\x00\x00\x01\x16\x01\x30\x00\x30\x00\x00\x00\x00\x00\x00\x00", /* ACA */
+        "\xA0\x00\x00\x00\x79\x01\x02\xFB\x02\xFB\x00\x00\x00\x00\x00\x00", /* ??? */
+        "\xA0\x00\x00\x00\x79\x01\x02\xFE\x02\xFE\x00\x00\x00\x00\x00\x00", /* PKI Certificate */
+        "\xA0\x00\x00\x00\x79\x01\x02\xFD\x02\xFD\x00\x00\x00\x00\x00\x00", /* PKI Credential */
+        "\xA0\x00\x00\x00\x79\x01\x02\x00\x02\x00\x00\x00\x00\x00\x00\x00", /* Person Instance */
+        "\xA0\x00\x00\x00\x79\x01\x02\x01\x02\x01\x00\x00\x00\x00\x00\x00", /* Personel */
+        "\xA0\x00\x00\x00\x79\x04\x01\x00\x01\x00\x00\x00\x00\x00\x00\x00", /* PKI */
+        "\xA0\x00\x00\x00\x79\x04\x01\x01\x01\x01\x00\x00\x00\x00\x00\x00", /* PKI */
+        "\xA0\x00\x00\x00\x79\x04\x01\x02\x01\x02\x00\x00\x00\x00\x00\x00", /* PKI */
+        "\xA0\x00\x00\x01\x16\x01\x60\x10\x30\x00\x00\x00\x00\x00\x00\x00", /* ?? AID=ACA ?? */
+        "\xA0\x00\x00\x01\x16\x01\x60\x30\x30\x00\x00\x00\x00\x00\x00\x00", /* ?? AID=ACA ?? */
+        "\xA0\x00\x00\x01\x16\x01\x90\x00\x30\x00\x00\x00\x00\x00\x00\x00", /* ?? AID=ACA ?? */
+        "\xA0\x00\x00\x00\x79\x01\x12\x01\x12\x01\x00\x00\x00\x00\x00\x00", /* ?? */
+        "\xA0\x00\x00\x00\x79\x01\x12\x02\x12\x02\x00\x00\x00\x00\x00\x00", /* ?? */
+        /*
+         *                                       [ Empty for VM cards!  ]
+         * [ RID 5B         ][T ][  OID ][ AID ] [ P][AccessKeyInfo ][ K]
+         * CardApplicationType-^                ^  ^- Pin ID           ^
+         * AccessProfile is empty --------------'                      |
+         * Key Crypto Algorithm ---------------------------------------'
+         *
+         * AID -- the "address" of the container
+         * Object ID = object type
+         *
+         * 7.3 The Applications CardURL
+         */
+    };
+    unsigned char pkcs15[] = "\x00";
+    unsigned char reg_data_model[] = "\x10";
+    unsigned char acr_table[] = "\x07\xA0\x00\x00\x00\x79\x03\x00\x00\x00\x00"
+        "\x00\x00\x00\x00\x00\x00";
+    static struct simpletlv_member buffer[] = {
+      {CAC_CCC_CARD_IDENTIFIER, 0x15, {/*.value = card_identifier*/},
+          SIMPLETLV_TYPE_LEAF},
+      {CAC_CCC_CAPABILITY_CONTAINER_VERSION, 1, {/*.value = cc_version*/},
+          SIMPLETLV_TYPE_LEAF},
+      {CAC_CCC_CAPABILITY_GRAMMAR_VERSION, 1, {/*.value = cg_version*/},
+          SIMPLETLV_TYPE_LEAF},
+      {CAC_CCC_APPLICATION_CARDURL, 16, {/*.value = cardurl[0]*/},
+          SIMPLETLV_TYPE_LEAF},
+      {CAC_CCC_APPLICATION_CARDURL, 16, {/*.value = cardurl[1]*/},
+          SIMPLETLV_TYPE_NONE},
+      {CAC_CCC_APPLICATION_CARDURL, 16, {/*.value = cardurl[2]*/},
+          SIMPLETLV_TYPE_NONE},
+      {CAC_CCC_APPLICATION_CARDURL, 16, {/*.value = cardurl[3]*/},
+          SIMPLETLV_TYPE_NONE},
+      {CAC_CCC_APPLICATION_CARDURL, 16, {/*.value = cardurl[4]*/},
+          SIMPLETLV_TYPE_NONE},
+      {CAC_CCC_APPLICATION_CARDURL, 16, {/*.value = cardurl[5]*/},
+          SIMPLETLV_TYPE_NONE},
+      {CAC_CCC_APPLICATION_CARDURL, 16, {/*.value = cardurl[6]*/},
+          SIMPLETLV_TYPE_NONE},
+      {CAC_CCC_APPLICATION_CARDURL, 16, {/*.value = cardurl[7]*/},
+          SIMPLETLV_TYPE_NONE},
+      {CAC_CCC_APPLICATION_CARDURL, 16, {/*.value = cardurl[8]*/},
+          SIMPLETLV_TYPE_NONE},
+      {CAC_CCC_APPLICATION_CARDURL, 16, {/*.value = cardurl[9]*/},
+          SIMPLETLV_TYPE_NONE},
+      {CAC_CCC_APPLICATION_CARDURL, 16, {/*.value = cardurl[10]*/},
+          SIMPLETLV_TYPE_NONE},
+      {CAC_CCC_APPLICATION_CARDURL, 16, {/*.value = cardurl[11]*/},
+          SIMPLETLV_TYPE_NONE},
+      {CAC_CCC_APPLICATION_CARDURL, 16, {/*.value = cardurl[12]*/},
+          SIMPLETLV_TYPE_NONE},
+      {CAC_CCC_APPLICATION_CARDURL, 16, {/*.value = cardurl[13]*/},
+          SIMPLETLV_TYPE_NONE},
+      {CAC_CCC_PKCS15, 1, {/*.value = pkcs15 */},
+          SIMPLETLV_TYPE_LEAF},
+      {CAC_CCC_REGISTERED_DATA_MODEL_NUMBER, 1, {/*.value = reg_data_model */},
+          SIMPLETLV_TYPE_LEAF},
+      {CAC_CCC_ACCESS_CONTROL_RULE_TABLE, 17, {/*.value = acr_table */},
+          SIMPLETLV_TYPE_LEAF},
+      {CAC_CCC_CARD_APDUS, 0, {}, SIMPLETLV_TYPE_LEAF},
+      {CAC_CCC_REDIRECTION_TAG, 0, {}, SIMPLETLV_TYPE_LEAF},
+      {CAC_CCC_CAPABILITY_TUPLES, 0, {}, SIMPLETLV_TYPE_LEAF},
+      {CAC_CCC_STATUS_TUPLES, 0, {}, SIMPLETLV_TYPE_LEAF},
+      {CAC_CCC_NEXT_CCC, 0, {}, SIMPLETLV_TYPE_LEAF},
+      {CAC_CCC_ERROR_DETECTION_CODE, 0, {}, SIMPLETLV_TYPE_LEAF},
+    };
+    size_t buffer_len = sizeof(buffer)/sizeof(struct simpletlv_member);
+    int i;
+
+    applet_private = g_new0(VCardAppletPrivate, 1);
+
+    /* prepare the buffers to when READ_BUFFER will be called.
+     * Assuming VM card with (LSB first if > 255)
+     * separate Tag+Length, Value buffers as described in 8.4:
+     *    2 B       1 B     1-3 B     1 B    1-3 B
+     * [ T-Len ] [ Tag1 ] [ Len1 ] [ Tag2] [ Len2 ] [...]
+     *
+     *    2 B       Len1 B      Len2 B
+     * [ V-Len ] [ Value 1 ] [ Value 2 ] [...]
+     * */
+
+    buffer[0].value.value = card_identifier;
+    buffer[1].value.value = cc_version;
+    buffer[2].value.value = cg_version;
+    buffer[3].value.value = cardurl[0]; /* ACA */
+
+    if (cert_count > 13) {
+        // XXX too many objects for now
+        g_debug("Too many PKI objects");
+        return NULL;
+    }
+    /* Generate card URLs for PKI applets */
+    for (i = 0; i < cert_count; i++) {
+        memcpy(cardurl[i+1], pki_cardurl, 16);
+        cardurl[i+1][8] = i; /* adjust OID and AID */
+        cardurl[i+1][10] = i;
+        buffer[i+4].value.value = cardurl[i+1];
+        buffer[i+4].type = SIMPLETLV_TYPE_LEAF;
+    }
+    /* Skip unknown CardURLs for now */
+
+    buffer[17].value.value = pkcs15;
+    buffer[18].value.value = reg_data_model;
+    buffer[19].value.value = acr_table;
+    /* CCC Tag+Len buffer */
+    /* Ex:
+     * 34 00      Length of complete buffer
+     * F0 15      Card Identifier
+     * F1 01      Capability Container version number
+     * F2 01      Capability Grammar version number
+     * F3 10      Applications CardURL
+     * F3 10      Applications CardURL
+     * F3 10      Applications CardURL
+     * F3 10      Applications CardURL
+     * F3 10      Applications CardURL
+     * F3 10      Applications CardURL
+     * F3 10      Applications CardURL
+     * F3 10      Applications CardURL
+     * F3 10      Applications CardURL
+     * F3 10      Applications CardURL
+     * F3 10      Applications CardURL
+     * F3 10      Applications CardURL
+     * F3 10      Applications CardURL
+     * F3 10      Applications CardURL
+     * F4 01      PKCS#15
+     * F5 01      Registered Data Model number
+     * F6 11      Access Control Rule Table
+     * F7 00      CARD APDUs
+     * FA 00      Redirection Tag
+     * FB 00      Capability Tuples  (CTs)
+     * FC 00      Status Tuples (STs)
+     * FD 00      Next CCC
+     * FE 00      Error Detection Code
+     */
+    applet_private->tag_buffer_len = cac_create_tl_file(buffer, buffer_len,
+        &applet_private->tag_buffer);
+    if (applet_private->tag_buffer_len == 0)
+        goto failure;
+    g_debug("%s: applet_private->tag_buffer = %s", __func__,
+        hex_dump(applet_private->tag_buffer, applet_private->tag_buffer_len, NULL, 0));
+
+    /* Value buffer */
+    /* Ex:
+     * 0A 01       Length of complete buffer
+     * A0 00 00 00 79 03 02 40 70 50 72 36 0E 00 00 58 BD 00 2C 19 B5
+     * [ GSC-RID    ] [] [] [ Card ID                               ]
+     * Manufacturer ID-'  '- Card Type = javaCard
+     *             Card Identifier
+     * 21          CC version
+     * 21          Capability Grammar version
+     * A0 00 00 00 79 01 02 FB 02 FB 00 00 00 00 00 00
+     * A0 00 00 00 79 01 02 FE 02 FE 00 00 00 00 00 00
+     * A0 00 00 00 79 01 02 FD 02 FD 00 00 00 00 00 00
+     * A0 00 00 00 79 01 02 00 02 00 00 00 00 00 00 00
+     * A0 00 00 00 79 01 02 01 02 01 00 00 00 00 00 00
+     * A0 00 00 00 79 04 01 00 01 00 00 00 00 00 00 00
+     * A0 00 00 00 79 04 01 01 01 01 00 00 00 00 00 00
+     * A0 00 00 00 79 04 01 02 01 02 00 00 00 00 00 00
+     * A0 00 00 01 16 01 30 00 30 00 00 00 00 00 00 00
+     * A0 00 00 01 16 01 60 10 30 00 00 00 00 00 00 00
+     * A0 00 00 01 16 01 60 30 30 00 00 00 00 00 00 00
+     * A0 00 00 01 16 01 90 00 30 00 00 00 00 00 00 00
+     * A0 00 00 00 79 01 12 01 12 01 00 00 00 00 00 00
+     * A0 00 00 00 79 01 12 02 12 02 00 00 00 00 00 00
+     * [     RID    ] [] [OID] [AID] [ unused in VM? ]
+     * Appl. Type    -'
+     *  0x01 generic
+     *  0x02 ski
+     *  0x04 pki
+     *             CardURLs
+     * 00          PKCS#15
+     * 10          Reg. data model number
+     * 07 A0 00 00 00 79 03 00 00 00 00 00 00 00 00 00 00
+     * [] [    ACA AID       ] [            ????        ]
+     *             Access Control Rule table
+     */
+    applet_private->val_buffer_len = cac_create_val_file(buffer, buffer_len,
+        &applet_private->val_buffer);
+    if (applet_private->val_buffer_len == 0)
+        goto failure;
+    g_debug("%s: applet_private->val_buffer = %s", __func__,
+        hex_dump(applet_private->val_buffer, applet_private->val_buffer_len, NULL, 0));
+
+    /* Inject Object ID */
+    tv_object[0].value.value = object_id;
+
+    /* Inject T-Buffer and V-Buffer lengths in the properties buffer */
+    ushort2lebytes(&buffer_properties[1], applet_private->tag_buffer_len);
+    ushort2lebytes(&buffer_properties[3], applet_private->val_buffer_len);
+    tv_object[1].value.value = buffer_properties;
+
+    /* Inject Applet Version */
+    properties[0].value.value = applet_information;
+    properties[1].value.value = number_objects;
+    properties[2].value.child = tv_object;
+
+    /* Link the properties */
+    applet_private->properties = properties;
+    applet_private->properties_len = properties_len;
+
+    return applet_private;
+
+failure:
+    if (applet_private) {
+        cac_delete_ccc_applet_private(applet_private);
+    }
+    return NULL;
+}
+
+
+/*
+ * create a new CCC applet
+ */
+static VCardApplet *
+cac_new_ccc_applet(int cert_count)
+{
+    VCardAppletPrivate *applet_private;
+    VCardApplet *applet;
+
+    applet_private = cac_new_ccc_applet_private(cert_count);
+    if (applet_private == NULL) {
+        goto failure;
+    }
+    applet = vcard_new_applet(cac_common_process_apdu_read, NULL,
+                              cac_ccc_aid, sizeof(cac_ccc_aid));
+    if (applet == NULL) {
+        goto failure;
+    }
+    vcard_set_applet_private(applet, applet_private,
+                             cac_delete_ccc_applet_private);
+    applet_private = NULL;
+
+    return applet;
+
+failure:
+    if (applet_private != NULL) {
+        cac_delete_ccc_applet_private(applet_private);
+    }
+    return NULL;
+}
+
+
 /*
  * create a new cac applet which links to a given cert
  */
@@ -713,8 +1014,6 @@ failure:
 }
 
 
-static unsigned char cac_default_container_aid[] = {
-    0xa0, 0x00, 0x00, 0x00, 0x30, 0x00, 0x00 };
 static unsigned char cac_id_aid[] = {
     0xa0, 0x00, 0x00, 0x00, 0x79, 0x03, 0x00 };
 /*
@@ -744,10 +1043,10 @@ cac_card_init(VReader *reader, VCard *card,
         vcard_add_applet(card, applet);
     }
 
-    /* create a default blank container applet */
-    applet = vcard_new_applet(cac_applet_container_process_apdu,
-                              NULL, cac_default_container_aid,
-                              sizeof(cac_default_container_aid));
+    /* create a CCC container, which is need for CAC recognition,
+     * which should be default
+     */
+    applet = cac_new_ccc_applet(cert_count);
     if (applet == NULL) {
         goto failure;
     }

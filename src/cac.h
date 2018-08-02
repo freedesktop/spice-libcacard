@@ -26,6 +26,21 @@
 #define CAC_PKI_TAG_CERTIFICATE               0x70
 #define CAC_PKI_TAG_CERTINFO                  0x71
 
+/* CCC applet tags */
+#define CAC_CCC_CARD_IDENTIFIER               0xF0
+#define CAC_CCC_CAPABILITY_CONTAINER_VERSION  0xF1
+#define CAC_CCC_CAPABILITY_GRAMMAR_VERSION    0xF2
+#define CAC_CCC_APPLICATION_CARDURL           0xF3
+#define CAC_CCC_PKCS15                        0xF4
+#define CAC_CCC_REGISTERED_DATA_MODEL_NUMBER  0xF5
+#define CAC_CCC_ACCESS_CONTROL_RULE_TABLE     0xF6
+#define CAC_CCC_CARD_APDUS                    0xF7
+#define CAC_CCC_REDIRECTION_TAG               0xFA
+#define CAC_CCC_CAPABILITY_TUPLES             0xFB
+#define CAC_CCC_STATUS_TUPLES                 0xFC
+#define CAC_CCC_NEXT_CCC                      0xFD
+#define CAC_CCC_ERROR_DETECTION_CODE          0xFE
+
 /* Applet properties tags */
 #define CAC_PROPERTIES_APPLET_INFORMATION     0x01
 #define CAC_PROPERTIES_NUMBER_OBJECTS         0x40

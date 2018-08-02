@@ -305,6 +305,68 @@ static void get_properties(VReader *reader, int object_type)
     g_assert_cmpint(pbRecvBuffer[dwRecvLength-1], ==, 0x00);
 }
 
+static void parse_acr(uint8_t *buf, int buflen)
+{
+    uint8_t *p, *p_end;
+    int have_applet_information = 0;
+    int num_entries = 0, num_entries_expected = -1;
+
+    p = buf;
+    p_end = p + buflen - 2;
+    while (p < p_end) {
+        uint8_t tag;
+        size_t vlen;
+        if (simpletlv_read_tag(&p, p_end - p, &tag, &vlen) < 0) {
+            g_debug("The generated SimpleTLV can not be parsed");
+            g_assert_not_reached();
+        }
+        g_assert_cmpint(vlen, <=, p_end - p);
+        g_debug("Tag: 0x%02x, Len: %lu", tag, vlen);
+        switch (tag) {
+        case 0x01: /* Applet Information */
+            g_assert_cmpint(vlen, ==, 5);
+            g_assert_cmphex(*p, ==, 0x10); /* Applet family */
+            g_assert_cmpint(have_applet_information, ==, 0);
+            have_applet_information = 1;
+            break;
+
+        case 0xA1: /* Num ACR Entries */
+        case 0x81: /* Num Applet/Objects */
+        case 0x91: /* Num AMP Entries */
+        case 0x94: /* Num Service Applet Entries */
+            g_assert_cmpint(num_entries_expected, ==, -1);
+            g_assert_cmpint(num_entries, ==, 0);
+            num_entries_expected = *p;
+            break;
+
+        case 0xA0: /* ACR Entry */
+        case 0x80: /* Aplet Entry */
+        case 0x90: /* AMP Entry */
+        case 0x93: /* Service Entry */
+            num_entries++;
+            break;
+
+        case 0x82: /* Object ACR Entry */
+            /* this is only single entry without preceeding tags */
+            break;
+
+        default:
+            g_debug("Unknown tag in object: 0x%02x", tag);
+            g_assert_not_reached();
+        }
+        p += vlen;
+    }
+
+    /* Every response needs to have exactly one applet information tag */
+    g_assert_cmpint(have_applet_information, ==, 1);
+    /* The number of entries in the second tag matches the number of entries later */
+    if (num_entries_expected != -1) {
+        g_assert_cmpint(num_entries, ==, num_entries_expected);
+    }
+    /* nothing left to read */
+    g_assert_true(p == p_end);
+}
+
 static void get_acr(VReader *reader)
 {
     int dwRecvLength = APDUBufSize;
@@ -341,7 +403,8 @@ static void get_acr(VReader *reader)
     g_assert_cmphex(pbRecvBuffer[dwRecvLength-2], ==, VCARD7816_SW1_SUCCESS);
     g_assert_cmphex(pbRecvBuffer[dwRecvLength-1], ==, 0x00);
 
-    /* TODO parse the response */
+    /* parse the response */
+    parse_acr(pbRecvBuffer, dwRecvLength);
 
 
     /* P1=0x01: ACR table by ACRID=0x0A */
@@ -353,6 +416,10 @@ static void get_acr(VReader *reader)
     g_assert_cmpint(dwRecvLength, >, 2);
     g_assert_cmphex(pbRecvBuffer[dwRecvLength-2], ==, VCARD7816_SW1_SUCCESS);
     g_assert_cmphex(pbRecvBuffer[dwRecvLength-1], ==, 0x00);
+
+    /* parse the response */
+    parse_acr(pbRecvBuffer, dwRecvLength);
+
 
     /* P1=0x01: ACR table by ACRID=0x0F (non-existing) */
     get_acr_arg[5] = 0x0F;
@@ -401,6 +468,10 @@ static void get_acr(VReader *reader)
     g_assert_cmphex(pbRecvBuffer[dwRecvLength-2], ==, VCARD7816_SW1_SUCCESS);
     g_assert_cmphex(pbRecvBuffer[dwRecvLength-1], ==, 0x00);
 
+    /* parse the response */
+    parse_acr(pbRecvBuffer, dwRecvLength);
+
+
     /* P1=0x11: unknown AID should fail */
     get_acr_aid[11] = 0x11;
     dwRecvLength = APDUBufSize;
@@ -422,6 +493,10 @@ static void get_acr(VReader *reader)
     g_assert_cmpint(dwRecvLength, >, 2);
     g_assert_cmphex(pbRecvBuffer[dwRecvLength-2], ==, VCARD7816_SW1_SUCCESS);
     g_assert_cmphex(pbRecvBuffer[dwRecvLength-1], ==, 0x00);
+
+    /* parse the response */
+    parse_acr(pbRecvBuffer, dwRecvLength);
+
 
     /* P1=0x12: unknown OID should fail */
     get_acr_coid[6] = 0xDB;
@@ -446,6 +521,10 @@ static void get_acr(VReader *reader)
     g_assert_cmphex(pbRecvBuffer[dwRecvLength-2], ==, VCARD7816_SW1_SUCCESS);
     g_assert_cmphex(pbRecvBuffer[dwRecvLength-1], ==, 0x00);
 
+    /* parse the response */
+    parse_acr(pbRecvBuffer, dwRecvLength);
+
+
     /* P1=0x21: Service Applet Table */
     get_acr[2] = 0x21;
     dwRecvLength = APDUBufSize;
@@ -457,6 +536,8 @@ static void get_acr(VReader *reader)
     g_assert_cmphex(pbRecvBuffer[dwRecvLength-2], ==, VCARD7816_SW1_SUCCESS);
     g_assert_cmphex(pbRecvBuffer[dwRecvLength-1], ==, 0x00);
 
+    /* parse the response */
+    parse_acr(pbRecvBuffer, dwRecvLength);
 }
 
 static void read_buffer(VReader *reader, uint8_t type, int object_type)

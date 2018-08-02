@@ -527,7 +527,7 @@ static void read_buffer(VReader *reader, uint8_t type, int object_type)
             }
         }
         if (object_type == TEST_CCC)
-            g_assert_cmpint(card_urls, ==, 4);
+            g_assert_cmpint(card_urls, ==, 11 + 3);
     }
     g_free(data);
 }

@@ -1142,23 +1142,30 @@ cac_new_ccc_applet_private(int cert_count)
         "\x72\x36\x0E\x00\x00\x58\xBD\x00\x2C\x19\xB5";
     unsigned char cc_version[] = "\x21";
     unsigned char cg_version[] = "\x21";
-    unsigned char pki_cardurl[] =
-        "\xA0\x00\x00\x00\x79\x04\x01\x00\x01\x00\x00\x00\x00\x00\x00\x00";
-    unsigned char cardurl[14][16] = {
-        "\xA0\x00\x00\x01\x16\x01\x30\x00\x30\x00\x00\x00\x00\x00\x00\x00", /* ACA */
+    unsigned char cardurl[21][16] = {
+        /* common CardURLs */
         "\xA0\x00\x00\x00\x79\x01\x02\xFB\x02\xFB\x00\x00\x00\x00\x00\x00", /* ??? */
         "\xA0\x00\x00\x00\x79\x01\x02\xFE\x02\xFE\x00\x00\x00\x00\x00\x00", /* PKI Certificate */
         "\xA0\x00\x00\x00\x79\x01\x02\xFD\x02\xFD\x00\x00\x00\x00\x00\x00", /* PKI Credential */
         "\xA0\x00\x00\x00\x79\x01\x02\x00\x02\x00\x00\x00\x00\x00\x00\x00", /* Person Instance */
         "\xA0\x00\x00\x00\x79\x01\x02\x01\x02\x01\x00\x00\x00\x00\x00\x00", /* Personel */
+        "\xA0\x00\x00\x01\x16\x01\x30\x00\x30\x00\x00\x00\x00\x00\x00\x00", /* Access Control F. */
+        "\xA0\x00\x00\x01\x16\x01\x60\x10\x30\x00\x00\x00\x00\x00\x00\x00", /* -//- */
+        "\xA0\x00\x00\x01\x16\x01\x60\x30\x30\x00\x00\x00\x00\x00\x00\x00", /* -//- */
+        "\xA0\x00\x00\x01\x16\x01\x90\x00\x30\x00\x00\x00\x00\x00\x00\x00", /* -//- */
+        "\xA0\x00\x00\x00\x79\x01\x12\x01\x12\x01\x00\x00\x00\x00\x00\x00", /* ?? */
+        "\xA0\x00\x00\x00\x79\x01\x12\x02\x12\x02\x00\x00\x00\x00\x00\x00", /* ?? */
+        /* dynamic list of all possible PKI objects CardURLs */
         "\xA0\x00\x00\x00\x79\x04\x01\x00\x01\x00\x00\x00\x00\x00\x00\x00", /* PKI */
         "\xA0\x00\x00\x00\x79\x04\x01\x01\x01\x01\x00\x00\x00\x00\x00\x00", /* PKI */
         "\xA0\x00\x00\x00\x79\x04\x01\x02\x01\x02\x00\x00\x00\x00\x00\x00", /* PKI */
-        "\xA0\x00\x00\x01\x16\x01\x60\x10\x30\x00\x00\x00\x00\x00\x00\x00", /* ?? AID=ACA ?? */
-        "\xA0\x00\x00\x01\x16\x01\x60\x30\x30\x00\x00\x00\x00\x00\x00\x00", /* ?? AID=ACA ?? */
-        "\xA0\x00\x00\x01\x16\x01\x90\x00\x30\x00\x00\x00\x00\x00\x00\x00", /* ?? AID=ACA ?? */
-        "\xA0\x00\x00\x00\x79\x01\x12\x01\x12\x01\x00\x00\x00\x00\x00\x00", /* ?? */
-        "\xA0\x00\x00\x00\x79\x01\x12\x02\x12\x02\x00\x00\x00\x00\x00\x00", /* ?? */
+        "\xA0\x00\x00\x00\x79\x04\x01\x03\x01\x03\x00\x00\x00\x00\x00\x00", /* PKI */
+        "\xA0\x00\x00\x00\x79\x04\x01\x04\x01\x04\x00\x00\x00\x00\x00\x00", /* PKI */
+        "\xA0\x00\x00\x00\x79\x04\x01\x05\x01\x05\x00\x00\x00\x00\x00\x00", /* PKI */
+        "\xA0\x00\x00\x00\x79\x04\x01\x06\x01\x06\x00\x00\x00\x00\x00\x00", /* PKI */
+        "\xA0\x00\x00\x00\x79\x04\x01\x07\x01\x07\x00\x00\x00\x00\x00\x00", /* PKI */
+        "\xA0\x00\x00\x00\x79\x04\x01\x08\x01\x08\x00\x00\x00\x00\x00\x00", /* PKI */
+        "\xA0\x00\x00\x00\x79\x04\x01\x09\x01\x09\x00\x00\x00\x00\x00\x00", /* PKI */
         /*
          *                                       [ Empty for VM cards!  ]
          * [ RID 5B         ][T ][  OID ][ AID ] [ P][AccessKeyInfo ][ K]
@@ -1186,30 +1193,44 @@ cac_new_ccc_applet_private(int cert_count)
       {CAC_CCC_APPLICATION_CARDURL, 16, {/*.value = cardurl[0]*/},
           SIMPLETLV_TYPE_LEAF},
       {CAC_CCC_APPLICATION_CARDURL, 16, {/*.value = cardurl[1]*/},
-          SIMPLETLV_TYPE_NONE},
+          SIMPLETLV_TYPE_LEAF},
       {CAC_CCC_APPLICATION_CARDURL, 16, {/*.value = cardurl[2]*/},
-          SIMPLETLV_TYPE_NONE},
+          SIMPLETLV_TYPE_LEAF},
       {CAC_CCC_APPLICATION_CARDURL, 16, {/*.value = cardurl[3]*/},
-          SIMPLETLV_TYPE_NONE},
+          SIMPLETLV_TYPE_LEAF},
       {CAC_CCC_APPLICATION_CARDURL, 16, {/*.value = cardurl[4]*/},
-          SIMPLETLV_TYPE_NONE},
+          SIMPLETLV_TYPE_LEAF},
       {CAC_CCC_APPLICATION_CARDURL, 16, {/*.value = cardurl[5]*/},
-          SIMPLETLV_TYPE_NONE},
+          SIMPLETLV_TYPE_LEAF},
       {CAC_CCC_APPLICATION_CARDURL, 16, {/*.value = cardurl[6]*/},
-          SIMPLETLV_TYPE_NONE},
+          SIMPLETLV_TYPE_LEAF},
       {CAC_CCC_APPLICATION_CARDURL, 16, {/*.value = cardurl[7]*/},
-          SIMPLETLV_TYPE_NONE},
+          SIMPLETLV_TYPE_LEAF},
       {CAC_CCC_APPLICATION_CARDURL, 16, {/*.value = cardurl[8]*/},
-          SIMPLETLV_TYPE_NONE},
+          SIMPLETLV_TYPE_LEAF},
       {CAC_CCC_APPLICATION_CARDURL, 16, {/*.value = cardurl[9]*/},
-          SIMPLETLV_TYPE_NONE},
+          SIMPLETLV_TYPE_LEAF},
       {CAC_CCC_APPLICATION_CARDURL, 16, {/*.value = cardurl[10]*/},
-          SIMPLETLV_TYPE_NONE},
+          SIMPLETLV_TYPE_LEAF},
       {CAC_CCC_APPLICATION_CARDURL, 16, {/*.value = cardurl[11]*/},
           SIMPLETLV_TYPE_NONE},
       {CAC_CCC_APPLICATION_CARDURL, 16, {/*.value = cardurl[12]*/},
           SIMPLETLV_TYPE_NONE},
       {CAC_CCC_APPLICATION_CARDURL, 16, {/*.value = cardurl[13]*/},
+          SIMPLETLV_TYPE_NONE},
+      {CAC_CCC_APPLICATION_CARDURL, 16, {/*.value = cardurl[14]*/},
+          SIMPLETLV_TYPE_NONE},
+      {CAC_CCC_APPLICATION_CARDURL, 16, {/*.value = cardurl[15]*/},
+          SIMPLETLV_TYPE_NONE},
+      {CAC_CCC_APPLICATION_CARDURL, 16, {/*.value = cardurl[16]*/},
+          SIMPLETLV_TYPE_NONE},
+      {CAC_CCC_APPLICATION_CARDURL, 16, {/*.value = cardurl[17]*/},
+          SIMPLETLV_TYPE_NONE},
+      {CAC_CCC_APPLICATION_CARDURL, 16, {/*.value = cardurl[18]*/},
+          SIMPLETLV_TYPE_NONE},
+      {CAC_CCC_APPLICATION_CARDURL, 16, {/*.value = cardurl[19]*/},
+          SIMPLETLV_TYPE_NONE},
+      {CAC_CCC_APPLICATION_CARDURL, 16, {/*.value = cardurl[20]*/},
           SIMPLETLV_TYPE_NONE},
       {CAC_CCC_PKCS15, 1, {/*.value = pkcs15 */},
           SIMPLETLV_TYPE_LEAF},
@@ -1242,7 +1263,10 @@ cac_new_ccc_applet_private(int cert_count)
     buffer[0].value.value = card_identifier;
     buffer[1].value.value = cc_version;
     buffer[2].value.value = cg_version;
-    buffer[3].value.value = cardurl[0]; /* ACA */
+    /* common CardURLs */
+    for (i = 0; i < 11; i++) {
+        buffer[3+i].value.value = cardurl[i];
+    }
 
     if (cert_count > 10) {
         // XXX too many objects for now
@@ -1251,17 +1275,13 @@ cac_new_ccc_applet_private(int cert_count)
     }
     /* Generate card URLs for PKI applets */
     for (i = 0; i < cert_count; i++) {
-        memcpy(cardurl[i+1], pki_cardurl, 16);
-        cardurl[i+1][8] = i; /* adjust OID and AID */
-        cardurl[i+1][10] = i;
-        buffer[i+4].value.value = cardurl[i+1];
-        buffer[i+4].type = SIMPLETLV_TYPE_LEAF;
+        buffer[i+14].value.value = cardurl[i+11];
+        buffer[i+14].type = SIMPLETLV_TYPE_LEAF;
     }
-    /* Skip unknown CardURLs for now */
 
-    buffer[17].value.value = pkcs15;
-    buffer[18].value.value = reg_data_model;
-    buffer[19].value.value = acr_table;
+    buffer[24].value.value = pkcs15;
+    buffer[25].value.value = reg_data_model;
+    buffer[26].value.value = acr_table;
     /* CCC Tag+Len buffer */
     /* Ex:
      * 34 00      Length of complete buffer

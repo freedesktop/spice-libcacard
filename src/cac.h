@@ -1,5 +1,5 @@
 /*
- * defines the entry point for the cac card. Only used by cac.c anc
+ * defines the entry point for the cac card. Only used by cac.c and
  * vcard_emul_type.c
  *
  * This work is licensed under the terms of the GNU LGPL, version 2.1 or later.
@@ -63,6 +63,10 @@
 #define CAC_PROPERTIES_PKI_PROPERTIES         0x43
 #define CAC_PROPERTIES_TV_OBJECT              0x50
 #define CAC_PROPERTIES_PKI_OBJECT             0x51
+
+/* Buffer formats */
+#define CAC_FORMAT_SIMPLETLV                  1
+#define CAC_FORMAT_EXTENDED                   2
 
 
 /*

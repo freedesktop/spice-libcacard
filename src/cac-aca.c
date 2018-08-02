@@ -370,6 +370,7 @@ cac_aca_get_service_table(size_t *r_len, unsigned int pki_applets)
  * Can be pulled from existing card using the OpenSC:
  * $ opensc-tool -s 00A4040007A0000000790300 -s 804C100000
  */
+
 enum {
     ACR_INS_CONFIG_NONE = 0x00,
     ACR_INS_CONFIG_P1 = 0x01,
@@ -950,6 +951,16 @@ struct amp_table amp_table = {
     }
 };
 
+static unsigned char amp_table_extended[] = {
+    0x1F, 0x00, 0x07, 0xA0, 0x00, 0x00, 0x00, 0x79, 0x03, 0x00,
+    0x12, 0x00, 0x00, 0x00,
+    /* Sometimes it can be 1E 00 07 A0 00 00 00 79 03 00 10 00 00 00 */
+    0x1E, 0x00, 0x07, 0xA0, 0x00, 0x00, 0x00, 0x79, 0x03, 0x00,
+    0x10, 0x01, 0x00, 0x00,
+    0x1D, 0x00, 0x07, 0xA0, 0x00, 0x00, 0x00, 0x79, 0x03, 0x00,
+    0x01, 0x00, 0x00, 0x00,
+};
+
 static struct simpletlv_member *
 cac_aca_get_amp(size_t *amp_len)
 {
@@ -1013,10 +1024,72 @@ cac_aca_get_properties(size_t *properties_len)
     return aca_properties;
 }
 
+/*
+ * This is ACR table in undocumented compressed form
+ *
+ *                            |ACRID ACRType AMPid:keyID
+ * 06 00 00 00 00 00 00       |  00     00
+ * 06 01 01 00 01 00 00       |  01     01
+ * 06 02 00 1F 00 00 00       |  02     00
+ * 06 06 06 00 1E 00 00       |  06     06   1E:00
+ * 06 04 04 1F 1F 21 00       |  04     04   1F:21
+ * 08 08 03 00 9D 01 1E 01 00 |  08     03   9D:01 1E:01
+ * 06 09 02 00 1D 02 00       |  09     02   1D:02
+ * 08 0A 03 00 9D 03 1E 01 00 |  0A     03   9D:03 1E:01
+ * 06 0B 02 00 1D 04 00       |  0B     02   1D:04
+ * 06 10 00 1E 00 00 00       |  10     00
+ * 06 11 00 1D 00 00 00       |  11     00
+ * len |  |  ?  |  |
+ * ACRID  |  ?  |  |
+ *  ACRType     |  |
+ *          AMPid  |
+ *  KeyIdOrReference
+ */
+static VCardResponse *
+cac_aca_get_acr_response_extended(VCard *card, int Le, unsigned char *acrid)
+{
+    size_t buffer_len;
+    unsigned char *buffer = NULL, *p;
+    VCardResponse *r = NULL;
+    size_t i, j;
+
+    buffer_len = acr_table.num_entries * (7 + 2 * (MAX_ACCESS_METHODS - 1));
+    buffer = g_malloc_n(buffer_len, sizeof(unsigned char));
+    p = buffer;
+
+    for (i = 0; i < acr_table.num_entries; i++) {
+        struct acr_entry *a = &acr_table.entries[i];
+        g_assert_cmpint(a->num_access_methods, <=, MAX_ACCESS_METHODS);
+        *p++ = a->num_access_methods == 2 ? 0x08 : 0x06;
+        *p++ = a->acrid;
+        *p++ = a->acrtype;
+        *p++ = a->applet_id;
+
+        for (j = 0; j < a->num_access_methods; j++) {
+            *p++ = a->access_methods[j].provider_id;
+            *p++ = a->access_methods[j].keyIDOrReference;
+        }
+        if (a->num_access_methods == 0) {
+            *p++ = 0x00;
+            *p++ = 0x00;
+        }
+        *p++ = 0x00;
+    }
+    g_assert((unsigned long)(p - buffer) <= buffer_len);
+    buffer_len = (p - buffer);
+
+    r = vcard_response_new(card, buffer, buffer_len, Le,
+        VCARD7816_STATUS_SUCCESS);
+    g_debug("%s: response bytes: %s", __func__,
+        hex_dump(buffer, buffer_len, NULL, 0));
+    g_free(buffer);
+    return r;
+}
 
 
-VCardResponse *
-cac_aca_get_acr_response(VCard *card, int Le, unsigned char *acrid)
+
+static VCardResponse *
+cac_aca_get_acr_response_simpletlv(VCard *card, int Le, unsigned char *acrid)
 {
     size_t acr_buffer_len;
     unsigned char *acr_buffer = NULL;
@@ -1061,9 +1134,21 @@ failure:
 }
 
 VCardResponse *
-cac_aca_get_applet_acr_response(VCard *card, int Le, unsigned int pki_applets,
-                                unsigned char *aid, unsigned int aid_len,
-                                unsigned char *coid)
+cac_aca_get_acr_response(VCard *card, int Le, unsigned char *acrid, int format)
+{
+    if (format == CAC_FORMAT_SIMPLETLV) {
+        return cac_aca_get_acr_response_simpletlv(card, Le, acrid);
+    } else {
+        return cac_aca_get_acr_response_extended(card, Le, acrid);
+    }
+}
+
+static VCardResponse *
+cac_aca_get_applet_acr_response_simpletlv(VCard *card, int Le,
+                                          unsigned int pki_applets,
+                                          unsigned char *aid,
+                                          unsigned int aid_len,
+                                          unsigned char *coid)
 {
     size_t acr_buffer_len;
     unsigned char *acr_buffer = NULL;
@@ -1080,7 +1165,7 @@ cac_aca_get_applet_acr_response(VCard *card, int Le, unsigned int pki_applets,
     if (coid != NULL) {
         g_debug("%s: Called. COID = %s", __func__, hex_dump(coid, 2, NULL, 0));
 
-        /* getting the table for COID (2B) */
+        /* getting the table for Card Object ID (2B) */
         acr_len = 1; // returns exactly one element if found
         acr = cac_aca_get_applet_acr_coid(pki_applets, coid);
         if (!acr) {
@@ -1125,8 +1210,112 @@ failure:
     return r;
 }
 
+/*
+ * This is Applet/Object ACR Table in undocumented compressed format.
+ *
+ * Len
+ * | Applet Id
+ * |  | Num Objects
+ * |  |  | Len [OID] INS+Config+ACRID
+ * 1C 1F 01
+ *          19 FF FF
+ *                   26 80 00
+ *                   2C 80 04
+ *                   24 81 80 04
+ *                   24 81 01 00
+ *                   24 80 06
+ *                   20 00 00
+ *                   D8 80 04
+ * 24 4F 02
+ *          08 DB 00
+ *                   58 00 04
+ *                   52 00 00
+ *          18 FF FF
+ *                   82 01 00 11
+ *                   50 80 02
+ *                   82 80 02
+ *                   F0 80 04
+ *                   34 80 04
+ *                   84 00 11
+ *                   20 00 10
+ * [...]
+ */
+static VCardResponse *
+cac_aca_get_applet_acr_response_extended(VCard *card, int Le,
+                                         unsigned int pki_applets,
+                                         unsigned char *aid,
+                                         unsigned int aid_len,
+                                         unsigned char *coid)
+{
+    size_t buffer_len, i, j, plen;
+    unsigned char *buffer = NULL, *p;
+    VCardResponse *r = NULL;
+    unsigned int num_applets = applets_table.num_static_applets + pki_applets;
+
+    buffer_len = num_applets * (3 + ACR_MAX_APPLET_OBJECTS
+        * ( 3 + ACR_MAX_INSTRUCTIONS * 6));
+    buffer = g_malloc_n(buffer_len, sizeof(unsigned char));
+    p = buffer;
+    plen = buffer_len;
+
+    for (i = 0; i < applets_table.num_applets; i++) {
+        struct acr_applet *a;
+        unsigned char *len;
+        /* Skip unused PKI applets */
+        if (i >= pki_applets && i < 10)
+            continue;
+
+        a = &applets_table.applets[i];
+        if (plen < 3)
+            goto failure;
+        len = p++; /* here we will store the length later */
+        *p++ = a->id;
+        *p++ = a->num_objects;
+        plen -= 3;
+        for (j = 0; j < a->num_objects; j++) {
+            struct acr_object *o = &a->objects[j];
+            unsigned char *len2;
+            unsigned int olen;
+
+            len2 = p++; /* here we will store the length later */
+            /* the encoding from here on is the same as in specification */
+            p = acr_applet_object_encode(o, p, plen, &olen);
+            if (!p)
+                goto failure;
+            plen -= olen;
+            *len2 = olen;
+        }
+        *len = (p - len - 1);
+    }
+    g_assert((unsigned long)(p - buffer) <= buffer_len);
+    buffer_len = (p - buffer);
+
+    r = vcard_response_new(card, buffer, buffer_len, Le,
+        VCARD7816_STATUS_SUCCESS);
+    g_debug("%s: response bytes: %s", __func__,
+        hex_dump(buffer, buffer_len, NULL, 0));
+failure:
+    g_free(buffer);
+    return r;
+}
+
 VCardResponse *
-cac_aca_get_amp_response(VCard *card, int Le)
+cac_aca_get_applet_acr_response(VCard *card, int Le, unsigned int pki_applets,
+                                unsigned char *aid, unsigned int aid_len,
+                                unsigned char *coid, int format)
+{
+    if (format == CAC_FORMAT_SIMPLETLV) {
+        return cac_aca_get_applet_acr_response_simpletlv(card, Le,
+            pki_applets, aid, aid_len, coid);
+    } else {
+        return cac_aca_get_applet_acr_response_extended(card, Le,
+            pki_applets, aid, aid_len, coid);
+    }
+}
+
+
+static VCardResponse *
+cac_aca_get_amp_response_simpletlv(VCard *card, int Le)
 {
     size_t amp_buffer_len;
     unsigned char *amp_buffer = NULL;
@@ -1168,7 +1357,84 @@ failure:
 }
 
 VCardResponse *
-cac_aca_get_service_response(VCard *card, int Le, unsigned int pki_applets)
+cac_aca_get_amp_response(VCard *card, int Le, int format)
+{
+    if (format == CAC_FORMAT_SIMPLETLV) {
+        return cac_aca_get_amp_response_simpletlv(card, Le);
+    } else {
+        /* 1F 00 07 A0 00 00 00 79 03 00 12 00 00 00
+         * 1E 00 07 A0 00 00 00 79 03 00 10 01 00 00
+         * 1D 00 07 A0 00 00 00 79 03 00 01 00 00 00
+         *      LEN [ AID              ] [OID]
+         */
+        return vcard_response_new(card, amp_table_extended,
+            sizeof(amp_table_extended), Le, VCARD7816_STATUS_SUCCESS);
+    }
+}
+
+/*
+ * This is Service Applet table in undocumented compressed format
+ *
+ * Applet ID
+ * |    Len [ AID              ]
+ * 40 00 07 A0 00 00 01 16 30 00
+ * 4F 00 07 A0 00 00 01 16 DB 00
+ * 4B 00 07 A0 00 00 00 79 02 FB
+ * 41 00 07 A0 00 00 00 79 02 00
+ * 42 00 07 A0 00 00 00 79 02 01
+ * 4E 00 07 A0 00 00 00 79 02 FE
+ * 4D 00 07 A0 00 00 00 79 02 FD
+ * 50 00 07 A0 00 00 00 79 02 F2
+ * 63 00 07 A0 00 00 00 79 01 02
+ * 51 00 07 A0 00 00 00 79 02 F0
+ * 61 00 07 A0 00 00 00 79 01 00
+ * 52 00 07 A0 00 00 00 79 02 F1
+ * 62 00 07 A0 00 00 00 79 01 01
+ * 44 00 07 A0 00 00 00 79 12 01
+ * 45 00 07 A0 00 00 00 79 12 02
+ */
+static VCardResponse *
+cac_aca_get_service_response_extended(VCard *card, int Le,
+                                      unsigned int pki_applets)
+{
+    size_t buffer_len;
+    unsigned char *buffer = NULL, *p;
+    VCardResponse *r = NULL;
+    size_t num_entries, i;
+
+    num_entries = service_table.num_static_entries + pki_applets;
+
+    buffer_len = num_entries * (3 + MAX_AID_LEN);
+    buffer = g_malloc(buffer_len);
+    p = buffer;
+
+    for (i = 0; i < service_table.num_entries; i++) {
+        struct applet_entry *e;
+        /* Skip unused PKI applets */
+        if (i >= pki_applets && i < 10)
+            continue;
+
+        e = &service_table.entries[i];
+        *p++ = e->applet_id;
+        *p++ = 0;
+        *p++ = e->applet_aid_len;
+        memcpy(p, e->applet_aid, e->applet_aid_len);
+        p += e->applet_aid_len;
+    }
+    g_assert((unsigned long)(p - buffer) <= buffer_len);
+    buffer_len = (p - buffer);
+
+    r = vcard_response_new(card, buffer, buffer_len, Le,
+        VCARD7816_STATUS_SUCCESS);
+    g_debug("%s: response bytes: %s", __func__,
+        hex_dump(buffer, buffer_len, NULL, 0));
+    g_free(buffer);
+    return r;
+}
+
+static VCardResponse *
+cac_aca_get_service_response_simpletlv(VCard *card, int Le,
+                                       unsigned int pki_applets)
 {
     size_t service_buffer_len;
     unsigned char *service_buffer = NULL;
@@ -1207,6 +1473,17 @@ failure:
     if (r == NULL)
        r = vcard_make_response(VCARD7816_STATUS_ERROR_GENERAL);
     return r;
+}
+
+VCardResponse *
+cac_aca_get_service_response(VCard *card, int Le,
+                             unsigned int pki_applets, int format)
+{
+    if (format == CAC_FORMAT_SIMPLETLV) {
+        return cac_aca_get_service_response_simpletlv(card, Le, pki_applets);
+    } else {
+        return cac_aca_get_service_response_extended(card, Le, pki_applets);
+    }
 }
 
 /* vim: set ts=4 sw=4 tw=0 noet expandtab: */

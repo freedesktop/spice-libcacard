@@ -19,14 +19,15 @@
 #include <string.h>
 
 VCardResponse *
-cac_aca_get_acr_response(VCard *card, int Le, unsigned char *acrid);
+cac_aca_get_acr_response(VCard *card, int Le, unsigned char *acrid, int format);
 
 VCardResponse *
 cac_aca_get_applet_acr_response(VCard *card, int Le, unsigned int pki_applets,
                                 unsigned char *aid, unsigned int aid_len,
-                                unsigned char *coid);
+                                unsigned char *coid, int format);
 VCardResponse *
-cac_aca_get_amp_response(VCard *card, int Le);
+cac_aca_get_amp_response(VCard *card, int Le, int format);
 
 VCardResponse *
-cac_aca_get_service_response(VCard *card, int Le, unsigned int pki_applets);
+cac_aca_get_service_response(VCard *card, int Le, unsigned int pki_applets,
+                             int format);

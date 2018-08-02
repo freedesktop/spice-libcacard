@@ -102,11 +102,11 @@ void get_properties_coid(VReader *reader, const unsigned char coid[2],
     VReaderStatus status;
     uint8_t pbRecvBuffer[APDUBufSize], *p, *p_end, *p2, *p2_end;
     uint8_t get_properties[] = {
-        /* Get properties */
+        /* Get properties       [Le] */
         0x80, 0x56, 0x01, 0x00, 0x00
     };
     uint8_t get_properties_tag[] = {
-        /* Get properties             [tag list] */
+        /* Get properties             [tag list]  [Le] */
         0x80, 0x56, 0x02, 0x00, 0x02, 0x01, 0x01, 0x00
     };
     int verified_pki_properties = 0;
@@ -203,6 +203,11 @@ void get_properties_coid(VReader *reader, const unsigned char coid[2],
                     verified_pki_properties = 1;
                     break;
 
+                case 0x26:
+                    g_assert_cmpint(vlen2, ==, 1);
+                    g_assert_cmphex(p2[0], ==, 0x01);
+                    break;
+
                 default:
                     g_debug("Unknown tag in object: 0x%02x", tag2);
                     g_assert_not_reached();
@@ -212,6 +217,16 @@ void get_properties_coid(VReader *reader, const unsigned char coid[2],
             /* one more object processed */
             num_objects++;
             break;
+
+        case 0x39:
+            g_assert_cmpint(vlen, ==, 1);
+            g_assert_cmphex(p[0], ==, 0x00);
+            break;
+
+        case 0x3A:
+            g_assert_cmpint(vlen, ==, 7);
+            break;
+
         default:
             g_debug("Unknown tag in properties buffer: 0x%02x", tag);
             g_assert_not_reached();
@@ -257,6 +272,32 @@ void get_properties_coid(VReader *reader, const unsigned char coid[2],
     g_assert_cmpint(dwRecvLength, ==, 16); /* Two applet information buffers + status */
     g_assert_cmpint(pbRecvBuffer[dwRecvLength-2], ==, VCARD7816_SW1_SUCCESS);
     g_assert_cmpint(pbRecvBuffer[dwRecvLength-1], ==, 0x00);
+
+
+    /* Test the undocumented P1 = 0x40 */
+    dwRecvLength = APDUBufSize;
+    get_properties[2] = 0x40;
+    get_properties[4] = 0x00;
+    status = vreader_xfr_bytes(reader,
+                               get_properties, sizeof(get_properties),
+                               pbRecvBuffer, &dwRecvLength);
+    g_assert_cmpint(status, ==, VREADER_OK);
+    /* for too long Le, the cards return LE_ERROR with correct length to ask */
+    g_assert_cmpint(dwRecvLength, ==, 2);
+    g_assert_cmpint(pbRecvBuffer[0], ==, VCARD7816_SW1_LE_ERROR);
+    g_assert_cmpint(pbRecvBuffer[1], !=, 0x00);
+
+    /* Update the APDU to match Le field from response and resend */
+    get_properties[4] = pbRecvBuffer[1];
+    dwRecvLength = APDUBufSize;
+    status = vreader_xfr_bytes(reader,
+                               get_properties, sizeof(get_properties),
+                               pbRecvBuffer, &dwRecvLength);
+    g_assert_cmpint(status, ==, VREADER_OK);
+    g_assert_cmpint(dwRecvLength, >, 2);
+    g_assert_cmpint(pbRecvBuffer[dwRecvLength-2], ==, VCARD7816_SW1_SUCCESS);
+    g_assert_cmpint(pbRecvBuffer[dwRecvLength-1], ==, 0x00);
+
 }
 
 void get_properties(VReader *reader, int object_type)

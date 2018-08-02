@@ -4,6 +4,15 @@
  * Adaptation to GSC-IS 2.1:
  * https://nvlpubs.nist.gov/nistpubs/Legacy/IR/nistir6887e2003.pdf
  *
+ * and NIST SP 800-73-4
+ * https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-73-4.pdf
+ *
+ * Copyright 2010 - 2018 Red Hat, Inc.
+ *
+ * Authors: Robert Relyea <rrelyea@redhat.com>
+ *          Alon Levy <alevy@redhat.com>
+ *          Jakub Jelen <jjelen@redhat.com>
+ *
  * This code is licensed under the GNU LGPL, version 2.1 or later.
  * See the COPYING file in the top-level directory.
  */
@@ -86,6 +95,7 @@ struct VCardAppletPrivateStruct {
     int val_buffer_len;
     struct simpletlv_member *properties;
     unsigned int properties_len;
+    unsigned int long_properties_len;
     /* TODO we should also keep a state, which OID is selected,
      * but it does not matter now, because we do not have anything different
      * in either buffer
@@ -263,6 +273,7 @@ cac_common_process_apdu(VCard *card, VCardAPDU *apdu, VCardResponse **response)
             ret = VCARD_DONE;
             break;
         }
+
         switch (apdu->a_p1) {
         case 0x00:
             /* Get a GSC-IS v2.0 compatible properties response message. */
@@ -278,8 +289,11 @@ cac_common_process_apdu(VCard *card, VCardAPDU *apdu, VCardResponse **response)
                 ret = VCARD_DONE;
                 break;
             }
+            /* TODO the properties buffer should be shorter for P1 = 0x01 */
+
             *response = get_properties(card, applet_private->properties,
                 applet_private->properties_len, NULL, 0, apdu->a_Le);
+
             break;
         case 0x02:
             /* Get the properties of the tags provided in list of tags in
@@ -293,12 +307,20 @@ cac_common_process_apdu(VCard *card, VCardAPDU *apdu, VCardResponse **response)
             *response = get_properties(card, applet_private->properties,
                 applet_private->properties_len, apdu->a_body, apdu->a_Lc, apdu->a_Le);
             break;
+        case 0x40:
+            /* XXX This is undocumented P1 argument, which returns properties
+             * extended with some more values of unknown meaning.
+             */
+            *response = get_properties(card, applet_private->properties,
+                applet_private->long_properties_len, NULL, 0, apdu->a_Le);
+            break;
         default:
             /* unknown params returns (SW1=0x6A, SW2=0x86) */
             *response = vcard_make_response(
                         VCARD7816_STATUS_ERROR_P1_P2_INCORRECT);
             break;
         }
+
         ret = VCARD_DONE;
         break;
     case VCARD7816_INS_SELECT_FILE:
@@ -341,7 +363,7 @@ cac_common_process_apdu(VCard *card, VCardAPDU *apdu, VCardResponse **response)
         break;
     default:
         *response = vcard_make_response(
-            VCARD7816_STATUS_ERROR_COMMAND_NOT_SUPPORTED);
+            VCARD7816_STATUS_ERROR_INS_CODE_INVALID);
         ret = VCARD_DONE;
         break;
     }
@@ -489,6 +511,7 @@ cac_applet_pki_process_apdu(VCard *card, VCardAPDU *apdu,
         if (apdu->a_p2 != 0) {
             *response = vcard_make_response(
                              VCARD7816_STATUS_ERROR_P1_P2_INCORRECT);
+            ret = VCARD_DONE;
             break;
         }
         size = apdu->a_Lc;
@@ -548,6 +571,7 @@ cac_applet_aca_process_apdu(VCard *card, VCardAPDU *apdu,
     VCardStatus ret = VCARD_FAIL;
     CACACAAppletData *aca_applet;
     VCardAppletPrivate *applet_private;
+    int format;
 
     applet_private = vcard_get_current_applet_private(card, apdu->a_channel);
     assert(applet_private);
@@ -565,15 +589,23 @@ cac_applet_aca_process_apdu(VCard *card, VCardAPDU *apdu,
             ret = VCARD_DONE;
             break;
         }
+
+        format = ((apdu->a_p1 & 0x40)
+            ? CAC_FORMAT_EXTENDED
+            : CAC_FORMAT_SIMPLETLV);
+
         switch (apdu->a_p1) {
         case 0x00:
+        case 0x40:
+        case 0x41: /* This one returns the same as 0x40 for some reason */
             /* All ACR table entries are to be extracted */
             if (apdu->a_Lc != 0) {
                 *response = vcard_make_response(
                             VCARD7816_STATUS_ERROR_DATA_INVALID);
                 break;
             }
-            *response = cac_aca_get_acr_response(card, apdu->a_Le, NULL);
+            *response = cac_aca_get_acr_response(card, apdu->a_Le, NULL,
+                format);
             break;
 
         case 0x01:
@@ -583,9 +615,14 @@ cac_applet_aca_process_apdu(VCard *card, VCardAPDU *apdu,
                             VCARD7816_STATUS_ERROR_DATA_INVALID);
                 break;
             }
-            *response = cac_aca_get_acr_response(card, apdu->a_Le, apdu->a_body);
+            *response = cac_aca_get_acr_response(card, apdu->a_Le,
+                apdu->a_body, format);
             break;
+
         case 0x10:
+        case 0x50:
+        case 0x51: /* returns the same as 0x50 for some reason */
+        case 0x52: /* returns the same as 0x50 for some reason */
             /* All Applet/Object ACR table entries are to be extracted */
             if (apdu->a_Lc != 0) {
                 *response = vcard_make_response(
@@ -593,7 +630,7 @@ cac_applet_aca_process_apdu(VCard *card, VCardAPDU *apdu,
                 break;
             }
             *response = cac_aca_get_applet_acr_response(card, apdu->a_Le,
-                aca_applet->pki_applets, NULL, 0, NULL);
+                aca_applet->pki_applets, NULL, 0, NULL, format);
             break;
 
         case 0x11:
@@ -605,7 +642,8 @@ cac_applet_aca_process_apdu(VCard *card, VCardAPDU *apdu,
                 break;
             }
             *response = cac_aca_get_applet_acr_response(card, apdu->a_Le,
-                aca_applet->pki_applets, apdu->a_body, apdu->a_Lc, NULL);
+                aca_applet->pki_applets, apdu->a_body, apdu->a_Lc, NULL,
+                format);
             break;
 
         case 0x12:
@@ -617,19 +655,22 @@ cac_applet_aca_process_apdu(VCard *card, VCardAPDU *apdu,
                 break;
             }
             *response = cac_aca_get_applet_acr_response(card, apdu->a_Le,
-                aca_applet->pki_applets, NULL, 0, apdu->a_body);
+                aca_applet->pki_applets, NULL, 0, apdu->a_body, format);
             break;
 
         case 0x20:
+        case 0x60:
             /* The Access Method Provider table is extracted. */
             if (apdu->a_Lc != 0) {
                 *response = vcard_make_response(
                             VCARD7816_STATUS_ERROR_DATA_INVALID);
                 break;
             }
-            *response = cac_aca_get_amp_response(card, apdu->a_Le);
+            *response = cac_aca_get_amp_response(card, apdu->a_Le, format);
             break;
+
         case 0x21:
+        case 0x61:
             /* The Service Applet table is extracted. */
             if (apdu->a_Lc != 0) {
                 *response = vcard_make_response(
@@ -637,13 +678,23 @@ cac_applet_aca_process_apdu(VCard *card, VCardAPDU *apdu,
                 break;
             }
             *response = cac_aca_get_service_response(card, apdu->a_Le,
-                aca_applet->pki_applets);
+                aca_applet->pki_applets, format);
             break;
+
         default:
             *response = vcard_make_response(
                 VCARD7816_STATUS_ERROR_COMMAND_NOT_SUPPORTED);
             break;
         }
+        ret = VCARD_DONE;
+        break;
+    /* XXX unknown APDU from ActivClient after PIN verification */
+    case 0x5A:
+        /* ???
+         * 80 5A 00 00 00
+         * HW response: 90 00
+         */
+        *response = vcard_make_response(VCARD7816_STATUS_SUCCESS);
         ret = VCARD_DONE;
         break;
     default:
@@ -721,7 +772,7 @@ cac_delete_pki_applet_private(VCardAppletPrivate *applet_private)
     g_free(applet_private->val_buffer);
     g_free(applet_private->coids);
     /* this one is cloned so needs to be freed */
-    simpletlv_free(applet_private->properties, applet_private->properties_len);
+    simpletlv_free(applet_private->properties, applet_private->long_properties_len);
     if (pki_applet_data->key != NULL) {
         vcard_emul_delete_key(pki_applet_data->key);
     }
@@ -814,34 +865,65 @@ cac_new_pki_applet_private(int i, const unsigned char *cert,
      *       10  Key length bytes /8
      *       01  Private key initialized
      *       01  Public key initialized
+     *
+     * Long Properties:
+     * PKI applet:
+     * 01 05        Applet Information
+     *  10 02 06 02 03
+     * 40 01        Number of objects
+     *  01
+     * 51 14        First PKI Object
+     *  41 02       Object ID
+     *   01 02
+     *  42 05       Buffer properties
+     *   00 1E 00 57 05
+     *  43 04       PKI Properties
+     *   06 10 01 00
+     * 26 01        ???
+     *  01
+     * 39 01
+     *  00
+     * 3A 07        ACA ???
+     *  A0 00 00 00 79 03 00
      */
     unsigned char object_id[] = "\x01\x00";
     unsigned char buffer_properties[] = "\x00\x00\x00\x00\x00";
     unsigned char pki_properties[] = "\x06\x10\x01\x01";
-    static struct simpletlv_member pki_object[3] = {
+    unsigned char buffer_26[] = "\x01";
+    static struct simpletlv_member pki_object[] = {
       {CAC_PROPERTIES_OBJECT_ID, 2, {/*.value = object_id*/},
           SIMPLETLV_TYPE_LEAF},
       {CAC_PROPERTIES_BUFFER_PROPERTIES, 5, {/*.value = buffer_properties*/},
           SIMPLETLV_TYPE_LEAF},
       {CAC_PROPERTIES_PKI_PROPERTIES, 4, {/*.value = pki_properties*/},
           SIMPLETLV_TYPE_LEAF},
+      {0x26, 0x01, {/*.child = buffer_26*/}, SIMPLETLV_TYPE_LEAF},
     };
     unsigned char applet_information[] = "\x10\x02\x06\x02\x03";
     unsigned char number_objects[] = "\x01";
+    unsigned char buffer_39[] = "\x00";
+    unsigned char aca_aid[] = "\xA0\x00\x00\x00\x79\x03\x00";
     static struct simpletlv_member properties[] = {
       {CAC_PROPERTIES_APPLET_INFORMATION, 5, {/*.value = applet_information*/},
           SIMPLETLV_TYPE_LEAF},
       {CAC_PROPERTIES_NUMBER_OBJECTS, 1, {/*.value = number_objects */},
           SIMPLETLV_TYPE_LEAF},
-      {CAC_PROPERTIES_PKI_OBJECT, 3, {/*.child = pki_object*/},
+      {CAC_PROPERTIES_PKI_OBJECT, 4, {/*.child = pki_object*/},
           SIMPLETLV_TYPE_COMPOUND},
+      {0x39, 0x01, {/*.child = buffer_39*/}, SIMPLETLV_TYPE_LEAF},
+      {0x3A, 0x07, {/*.child = aca_aid*/}, SIMPLETLV_TYPE_LEAF},
     };
     size_t properties_len = sizeof(properties)/sizeof(struct simpletlv_member);
     /* if this would be 1, the certificate would be compressed */
     unsigned char certinfo[] = "\x00";
     struct simpletlv_member buffer[] = {
-        {CAC_PKI_TAG_CERTINFO, 1, {/*.value = certinfo*/}, SIMPLETLV_TYPE_LEAF},
-        {CAC_PKI_TAG_CERTIFICATE, cert_len, {/*.value = cert*/}, SIMPLETLV_TYPE_LEAF},
+        {CAC_PKI_TAG_CERTINFO, 1, {/*.value = certinfo*/},
+            SIMPLETLV_TYPE_LEAF},
+        {CAC_PKI_TAG_CERTIFICATE, cert_len, {/*.value = cert*/},
+            SIMPLETLV_TYPE_LEAF},
+        {CAC_PKI_TAG_MSCUID, 0, {/*.value = NULL*/}, SIMPLETLV_TYPE_LEAF},
+        {CAC_PKI_TAG_ERROR_DETECTION_CODE, 0, {/*.value = NULL*/},
+            SIMPLETLV_TYPE_LEAF},
     };
     size_t buffer_len = sizeof(buffer)/sizeof(struct simpletlv_member);
 
@@ -865,6 +947,8 @@ cac_new_pki_applet_private(int i, const unsigned char *cert,
     /* Tag+Len buffer */
     buffer[0].value.value = certinfo;
     buffer[1].value.value = (unsigned char *)cert;
+    buffer[2].value.value = NULL;
+    buffer[3].value.value = NULL;
     /* Ex:
      * 0A 00     Length of whole buffer
      * 71        Tag: CertInfo
@@ -919,15 +1003,20 @@ cac_new_pki_applet_private(int i, const unsigned char *cert,
     if (bits > 0)
         pki_properties[1] = 0xff & (bits / 8 / 8);
     pki_object[2].value.value = pki_properties;
+    pki_object[3].value.value = buffer_26;
 
     /* Inject Applet Version */
     properties[0].value.value = applet_information;
     properties[1].value.value = number_objects;
     properties[2].value.child = pki_object;
+    properties[3].value.value = buffer_39;
+    properties[4].value.value = aca_aid;
 
     /* Clone the properties */
-    applet_private->properties_len = properties_len;
-    applet_private->properties = simpletlv_clone(properties, properties_len);
+    applet_private->properties_len = 3;
+    applet_private->long_properties_len = properties_len;
+    applet_private->properties = simpletlv_clone(properties,
+        applet_private->long_properties_len);
     if (applet_private->properties == NULL) {
         goto failure;
     }
@@ -1326,36 +1415,38 @@ failure:
  *   00
  *   0E 00 4E 04
  *
- * OID buffers:
- * :3000
+ * OID buffers (from NIST SP 800-73-4)
+ * :3000: Card Holder Unique Identifier
  * Tag buffer:
  * 0C 00
- * 30 19        SEIWG data
- * 34 10        ??  list of 0x30
- * 35 08        ??  32 30 31 32 30 34 30 31
- * 3E FF 1A 06  ??
+ * 30 19        FASC
+ * 34 10        GUID
+ * 35 08        Expiration Date
+ * 3E FF 1A 06  Issuer Asymmetric Signature
  * FE 00        Error detection code
  * Value buffer:
  * D4 F8 10 DA 08 26 6C 10 A2 04 E5 83 60 DA 01 0C
  * 11 CE 66 62 84 38 10 93 E1  <-- SEIWG data
  *
- * :6010
+ * :6010: Cardholder Fingerprints
  * Tag buffer:
  * 06 00
- * BC FF CF 04  ??
+ * BC FF CF 04  Fingerprint I & II
  * FE 00        Error Detection Code
  *
- * :6030
+ * :6030: Cardholder Facial Image
  * Tag buffer:
  * 06 00
- * BC FF A9 29  ??
+ * BC FF A9 29  Image for Visual Verification
  * FE 00        Error Detection Code
  *
- * :9000
+ * :9000: Security Object
  * 08 00
- * BB FF 38 02  Some PKCS#7 signed block
- * BA 30        ???
+ * BB FF 38 02  Security Object
+ * BA 30        Mapping of DG to ContainerID
  * FE 00        Error Detectionc Code
+ *
+ * we should do this as passthrough too
  */
 
 
@@ -1385,14 +1476,18 @@ cac_new_ccc_applet_private(int cert_count)
      */
     static unsigned char object_id[] = "\xDB\x00";
     static unsigned char buffer_properties[] = "\x00\x00\x00\x00\x00";
-    static struct simpletlv_member tv_object[2] = {
+    static unsigned char buffer_26[] = "\x01";
+    static struct simpletlv_member tv_object[3] = {
       {CAC_PROPERTIES_OBJECT_ID, 2, {/*.value = object_id*/},
           SIMPLETLV_TYPE_LEAF},
       {CAC_PROPERTIES_BUFFER_PROPERTIES, 5, {/*.value = buffer_properties*/},
           SIMPLETLV_TYPE_LEAF},
+      {0x26, 0x01, {/*.value = buffer_26*/}, SIMPLETLV_TYPE_LEAF},
     };
     static unsigned char applet_information[] = "\x10\x02\x06\x02\x03";
     static unsigned char number_objects[] = "\x01";
+    static unsigned char buffer_39[] = "\x00";
+    static unsigned char aca_aid[] = "\xA0\x00\x00\x00\x79\x03\x00";
     static struct simpletlv_member properties[] = {
       {CAC_PROPERTIES_APPLET_INFORMATION, 5, {/*.value = applet_information*/},
           SIMPLETLV_TYPE_LEAF},
@@ -1400,6 +1495,8 @@ cac_new_ccc_applet_private(int cert_count)
           SIMPLETLV_TYPE_LEAF},
       {CAC_PROPERTIES_TV_OBJECT, 2, {/*.child = tv_object*/},
           SIMPLETLV_TYPE_COMPOUND},
+      {0x39, 0x01, {/*.child = buffer_39*/}, SIMPLETLV_TYPE_LEAF},
+      {0x3A, 0x07, {/*.child = aca_aid*/}, SIMPLETLV_TYPE_LEAF},
     };
     size_t properties_len = sizeof(properties)/sizeof(struct simpletlv_member);
 
@@ -1445,6 +1542,8 @@ cac_new_ccc_applet_private(int cert_count)
          */
     };
     unsigned char pkcs15[] = "\x00";
+    /* NIST SP 800-73-4: The data model of the PIV Card Application shall
+     * be identified by data model number 0x10 */
     unsigned char reg_data_model[] = "\x10";
     unsigned char acr_table[] = "\x07\xA0\x00\x00\x00\x79\x03\x00\x00\x00\x00"
         "\x00\x00\x00\x00\x00\x00";
@@ -1638,15 +1737,19 @@ cac_new_ccc_applet_private(int cert_count)
     ushort2lebytes(&buffer_properties[1], applet_private->tag_buffer_len);
     ushort2lebytes(&buffer_properties[3], applet_private->val_buffer_len);
     tv_object[1].value.value = buffer_properties;
+    tv_object[2].value.value = buffer_26;
 
     /* Inject Applet Version */
     properties[0].value.value = applet_information;
     properties[1].value.value = number_objects;
     properties[2].value.child = tv_object;
+    properties[3].value.value = buffer_39;
+    properties[4].value.value = aca_aid;
 
     /* Link the properties */
     applet_private->properties = properties;
-    applet_private->properties_len = properties_len;
+    applet_private->properties_len = 3;
+    applet_private->long_properties_len = properties_len;
 
     return applet_private;
 
@@ -1701,14 +1804,87 @@ cac_new_aca_applet_private(int cert_count)
      *    10  Applet family
      *    02 06 02 02  Applet version
      */
+
+    /* 0x40 Long properties (?):
+     * 01 05        Applet Information
+     *  10 02 06 02 02
+     * 23 0C
+     *  20 11 00 00 00 00 00 00 00 00 00 58
+     * 2A 02
+     *  02 00
+     * 2B 05        RID ???
+     *  A0 00 00 00 79
+     * 22 10
+     *  00 00 00 DA 01 B4 03 30 00 00 00 70 00 51 02 9D
+     * 2C 01
+     *  00
+     * 20 02
+     *  08 01
+     * 21 01
+     *  0F
+     * 32 04
+     *  03 03 03 03
+     * 30 01
+     *  08
+     * 31 04
+     *  06 08 00 00
+     * 24 01
+     *  FF
+     * 25 02
+     *  01 00
+     * 26 01
+     *  01
+     */
+
     static unsigned char applet_information[] = "\x10\x02\x06\x02\x02";
-    static struct simpletlv_member properties[1] = {
+    static unsigned char buffer_23[] = "\x20\x11\x00\x00\x00\x00\x00\x00\x00"
+                                       "\x00\x00\x58";
+    static unsigned char buffer_2A[] = "\x02\x00";
+    static unsigned char rid[] = "\xA0\x00\x00\x00\x79";
+    static unsigned char buffer_22[] = "\x00\x00\x00\xDA\x01\xB4\x03\x30\x00"
+                                       "\x00\x00\x70\x00\x51\x02\x9D";
+    static unsigned char buffer_2C[] = "\x00";
+    static unsigned char buffer_20[] = "\x08\x01";
+    static unsigned char buffer_21[] = "\x0F";
+    static unsigned char buffer_32[] = "\x03\x03\x03\x03";
+    static unsigned char buffer_30[] = "\x08";
+    static unsigned char buffer_31[] = "\x06\x08\x00\x00";
+    static unsigned char buffer_24[] = "\xFF";
+    static unsigned char buffer_25[] = "\x01\x00";
+    static unsigned char buffer_26[] = "\x01";
+    static struct simpletlv_member properties[] = {
       {CAC_PROPERTIES_APPLET_INFORMATION, 5, {/*.value = applet_information*/},
           SIMPLETLV_TYPE_LEAF},
+      {0x23, 0x0C, {/*.value = buffer_23*/}, SIMPLETLV_TYPE_LEAF},
+      {0x2A, 0x02, {/*.value = buffer_2A*/}, SIMPLETLV_TYPE_LEAF},
+      {0x2B, 0x05, {/*.value = rid*/}, SIMPLETLV_TYPE_LEAF},
+      {0x22, 0x10, {/*.value = buffer_22*/}, SIMPLETLV_TYPE_LEAF},
+      {0x2C, 0x01, {/*.value = buffer_2C*/}, SIMPLETLV_TYPE_LEAF},
+      {0x20, 0x02, {/*.value = buffer_20*/}, SIMPLETLV_TYPE_LEAF},
+      {0x21, 0x01, {/*.value = buffer_21*/}, SIMPLETLV_TYPE_LEAF},
+      {0x32, 0x04, {/*.value = buffer_32*/}, SIMPLETLV_TYPE_LEAF},
+      {0x30, 0x01, {/*.value = buffer_30*/}, SIMPLETLV_TYPE_LEAF},
+      {0x31, 0x04, {/*.value = buffer_31*/}, SIMPLETLV_TYPE_LEAF},
+      {0x24, 0x01, {/*.value = buffer_24*/}, SIMPLETLV_TYPE_LEAF},
+      {0x25, 0x02, {/*.value = buffer_25*/}, SIMPLETLV_TYPE_LEAF},
+      {0x26, 0x01, {/*.value = buffer_26*/}, SIMPLETLV_TYPE_LEAF},
     };
 
     /* Inject Applet Version into Applet information */
     properties[0].value.value = applet_information;
+    properties[1].value.value = buffer_23;
+    properties[2].value.value = buffer_2A;
+    properties[3].value.value = rid;
+    properties[4].value.value = buffer_22;
+    properties[5].value.value = buffer_2C;
+    properties[6].value.value = buffer_20;
+    properties[7].value.value = buffer_21;
+    properties[8].value.value = buffer_32;
+    properties[9].value.value = buffer_30;
+    properties[10].value.value = buffer_31;
+    properties[11].value.value = buffer_24;
+    properties[12].value.value = buffer_25;
+    properties[13].value.value = buffer_26;
 
     /* Create the private data structure */
     applet_private = g_new0(VCardAppletPrivate, 1);
@@ -1725,6 +1901,7 @@ cac_new_aca_applet_private(int cert_count)
     /* Link the properties */
     applet_private->properties = properties;
     applet_private->properties_len = 1;
+    applet_private->long_properties_len = 14;
 
     aca_applet_data->pki_applets = cert_count;
 
@@ -1744,11 +1921,13 @@ cac_new_empty_applet_private(unsigned char objects[][2], unsigned int objects_le
 
     unsigned char object_id[] = "\x00\x00";
     unsigned char buffer_properties[] = "\x00\x00\x00\x00\x00";
+    static unsigned char buffer_26[] = "\x01";
     static struct simpletlv_member tv_buffer[] = {
       {CAC_PROPERTIES_OBJECT_ID, 2, {/*.value = object_id*/},
           SIMPLETLV_TYPE_LEAF},
       {CAC_PROPERTIES_BUFFER_PROPERTIES, 5, {/*.value = buffer_properties*/},
           SIMPLETLV_TYPE_LEAF},
+      {0x26, 0x01, {/*.value = buffer_26*/}, SIMPLETLV_TYPE_LEAF},
     };
     unsigned char applet_information[] = "\x10\x02\x06\x02\x03";
     unsigned char number_objects = 0;
@@ -1757,15 +1936,15 @@ cac_new_empty_applet_private(unsigned char objects[][2], unsigned int objects_le
           SIMPLETLV_TYPE_LEAF},
       {CAC_PROPERTIES_NUMBER_OBJECTS, 1, {/*.value = number_objects*/},
           SIMPLETLV_TYPE_LEAF},
-      {CAC_PROPERTIES_TV_OBJECT, 2, {.child = NULL},
+      {CAC_PROPERTIES_TV_OBJECT, 3, {.child = NULL},
           SIMPLETLV_TYPE_COMPOUND},
-      {CAC_PROPERTIES_TV_OBJECT, 2, {.child = NULL},
+      {CAC_PROPERTIES_TV_OBJECT, 3, {.child = NULL},
           SIMPLETLV_TYPE_COMPOUND},
-      {CAC_PROPERTIES_TV_OBJECT, 2, {.child = NULL},
+      {CAC_PROPERTIES_TV_OBJECT, 3, {.child = NULL},
           SIMPLETLV_TYPE_COMPOUND},
-      {CAC_PROPERTIES_TV_OBJECT, 2, {.child = NULL},
+      {CAC_PROPERTIES_TV_OBJECT, 3, {.child = NULL},
           SIMPLETLV_TYPE_COMPOUND},
-      {CAC_PROPERTIES_TV_OBJECT, 2, {.child = NULL},
+      {CAC_PROPERTIES_TV_OBJECT, 3, {.child = NULL},
           SIMPLETLV_TYPE_COMPOUND},
     };
     unsigned properties_len = 2;
@@ -1786,9 +1965,10 @@ cac_new_empty_applet_private(unsigned char objects[][2], unsigned int objects_le
         /* Inject Object ID */
         tv_buffer[0].value.value = object_id;
         tv_buffer[1].value.value = buffer_properties;
+        tv_buffer[2].value.value = buffer_26;
 
         /* clone the object to the structure */
-        properties[2+i].value.child = simpletlv_clone(tv_buffer, 2);
+        properties[2+i].value.child = simpletlv_clone(tv_buffer, 3);
         if (properties[2+i].value.child == NULL)
             goto failure;
 
@@ -1812,13 +1992,14 @@ cac_new_empty_applet_private(unsigned char objects[][2], unsigned int objects_le
 
     /* Clone the properties */
     applet_private->properties_len = properties_len;
+    applet_private->long_properties_len = properties_len; /*TODO*/
     applet_private->properties = simpletlv_clone(properties, properties_len);
     if (applet_private->properties == NULL)
         goto failure;
 
     /* clean up the allocated properties */
     for (i = 0; i < number_objects; i++) {
-        simpletlv_free(properties[2+i].value.child, 2);
+        simpletlv_free(properties[2+i].value.child, 3);
     }
 
     /* tag/value buffers */
@@ -1848,11 +2029,13 @@ cac_new_passthrough_applet_private(VCard *card, const char *label,
 
     unsigned char object_id[] = "\x00\x00";
     unsigned char buffer_properties[] = "\x00\x00\x00\x00\x00";
-    static struct simpletlv_member tv_buffer[2] = {
+    static unsigned char buffer_26[] = "\x01";
+    static struct simpletlv_member tv_buffer[3] = {
       {CAC_PROPERTIES_OBJECT_ID, 2, {/*.value = object_id*/},
           SIMPLETLV_TYPE_LEAF},
       {CAC_PROPERTIES_BUFFER_PROPERTIES, 5, {/*.value = buffer_properties*/},
           SIMPLETLV_TYPE_LEAF},
+      {0x26, 0x01, {/*.value = buffer_26*/}, SIMPLETLV_TYPE_LEAF},
     };
     unsigned char applet_information[] = "\x10\x02\x06\x02\x03";
     unsigned char number_objects[] = "\x01";
@@ -1861,7 +2044,7 @@ cac_new_passthrough_applet_private(VCard *card, const char *label,
           SIMPLETLV_TYPE_LEAF},
       {CAC_PROPERTIES_NUMBER_OBJECTS, 1, {/*.value = number_objects*/},
           SIMPLETLV_TYPE_LEAF},
-      {CAC_PROPERTIES_TV_OBJECT, 2, {/*.child = tv_buffer*/},
+      {CAC_PROPERTIES_TV_OBJECT, 3, {/*.child = tv_buffer*/},
           SIMPLETLV_TYPE_COMPOUND},
     };
 
@@ -1892,6 +2075,7 @@ cac_new_passthrough_applet_private(VCard *card, const char *label,
     /* Inject Object ID */
     tv_buffer[0].value.value = object_id;
     tv_buffer[1].value.value = buffer_properties;
+    tv_buffer[2].value.value = buffer_26;
 
     /* Inject Applet Version */
     properties[0].value.value = applet_information;
@@ -1900,7 +2084,9 @@ cac_new_passthrough_applet_private(VCard *card, const char *label,
 
     /* Clone the properties */
     applet_private->properties_len = 3;
-    applet_private->properties = simpletlv_clone(properties, 3);
+    applet_private->long_properties_len = 3; /*TODO*/
+    applet_private->properties = simpletlv_clone(properties,
+        applet_private->long_properties_len);
     if (applet_private->properties == NULL)
         goto failure;
 

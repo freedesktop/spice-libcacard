@@ -388,6 +388,62 @@ static void get_acr(VReader *reader)
 
     /* parse the response */
     parse_acr(pbRecvBuffer, dwRecvLength);
+
+    /* Undocumented 0x40 returns ACR in different encoding */
+    get_acr[2] = 0x40;
+    dwRecvLength = APDUBufSize;
+    status = vreader_xfr_bytes(reader,
+                               get_acr, sizeof(get_acr),
+                               pbRecvBuffer, &dwRecvLength);
+    g_assert_cmpint(status, ==, VREADER_OK);
+    g_assert_cmpint(dwRecvLength, >, 2);
+    g_assert_cmphex(pbRecvBuffer[dwRecvLength-2], ==, VCARD7816_SW1_SUCCESS);
+    g_assert_cmphex(pbRecvBuffer[dwRecvLength-1], ==, 0x00);
+
+    /* parse the response */
+    //parse_acr(pbRecvBuffer, dwRecvLength);
+
+    /* Undocumented 0x50 returns Applet/Object ACR in different encoding */
+    get_acr[2] = 0x50;
+    dwRecvLength = APDUBufSize;
+    status = vreader_xfr_bytes(reader,
+                               get_acr, sizeof(get_acr),
+                               pbRecvBuffer, &dwRecvLength);
+    g_assert_cmpint(status, ==, VREADER_OK);
+    g_assert_cmpint(dwRecvLength, ==, 2);
+    g_assert_cmphex(pbRecvBuffer[dwRecvLength-2], ==, VCARD7816_SW1_RESPONSE_BYTES);
+    g_assert_cmphex(pbRecvBuffer[dwRecvLength-1], ==, 0x00);
+
+    /* parse the response */
+    //parse_acr(pbRecvBuffer, dwRecvLength);
+
+    /* Undocumented 0x60 returns AMP in different encoding */
+    get_acr[2] = 0x60;
+    dwRecvLength = APDUBufSize;
+    status = vreader_xfr_bytes(reader,
+                               get_acr, sizeof(get_acr),
+                               pbRecvBuffer, &dwRecvLength);
+    g_assert_cmpint(status, ==, VREADER_OK);
+    g_assert_cmpint(dwRecvLength, >, 2);
+    g_assert_cmphex(pbRecvBuffer[dwRecvLength-2], ==, VCARD7816_SW1_SUCCESS);
+    g_assert_cmphex(pbRecvBuffer[dwRecvLength-1], ==, 0x00);
+
+    /* parse the response */
+    //parse_acr(pbRecvBuffer, dwRecvLength);
+
+    /* Undocumented 0x61 returns Service Applet in different encoding */
+    get_acr[2] = 0x61;
+    dwRecvLength = APDUBufSize;
+    status = vreader_xfr_bytes(reader,
+                               get_acr, sizeof(get_acr),
+                               pbRecvBuffer, &dwRecvLength);
+    g_assert_cmpint(status, ==, VREADER_OK);
+    g_assert_cmpint(dwRecvLength, >, 2);
+    g_assert_cmphex(pbRecvBuffer[dwRecvLength-2], ==, VCARD7816_SW1_SUCCESS);
+    g_assert_cmphex(pbRecvBuffer[dwRecvLength-1], ==, 0x00);
+
+    /* parse the response */
+    //parse_acr(pbRecvBuffer, dwRecvLength);
 }
 
 static void do_login(VReader *reader)

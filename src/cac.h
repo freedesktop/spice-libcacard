@@ -11,12 +11,30 @@
 #include "vcard.h"
 #include "vreader.h"
 
-#define CAC_GET_PROPERTIES  0x56
-#define CAC_GET_ACR         0x4c
-#define CAC_READ_BUFFER     0x52
-#define CAC_UPDATE_BUFFER   0x58
-#define CAC_SIGN_DECRYPT    0x42
-#define CAC_GET_CERTIFICATE 0x36
+#define CAC_GET_PROPERTIES                    0x56
+#define CAC_GET_ACR                           0x4c
+#define CAC_READ_BUFFER                       0x52 /* CACv2 */
+#define CAC_UPDATE_BUFFER                     0x58
+#define CAC_SIGN_DECRYPT                      0x42
+#define CAC_GET_CERTIFICATE                   0x36 /* CACv1 */
+
+/* read file TAGs for CACv2 */
+#define CAC_FILE_TAG                          0x01
+#define CAC_FILE_VALUE                        0x02
+
+/* PKI applet tags */
+#define CAC_PKI_TAG_CERTIFICATE               0x70
+#define CAC_PKI_TAG_CERTINFO                  0x71
+
+/* Applet properties tags */
+#define CAC_PROPERTIES_APPLET_INFORMATION     0x01
+#define CAC_PROPERTIES_NUMBER_OBJECTS         0x40
+#define CAC_PROPERTIES_OBJECT_ID              0x41
+#define CAC_PROPERTIES_BUFFER_PROPERTIES      0x42
+#define CAC_PROPERTIES_PKI_PROPERTIES         0x43
+#define CAC_PROPERTIES_TV_OBJECT              0x50
+#define CAC_PROPERTIES_PKI_OBJECT             0x51
+
 
 /*
  * Initialize the cac card. This is the only public function in this file. All

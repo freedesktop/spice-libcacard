@@ -145,16 +145,13 @@ static void test_cac(void)
 {
     VReader *reader = vreader_get_reader_by_id(0);
     VReaderStatus status;
-    int dwRecvLength = APDUBufSize, len;
+    int dwRecvLength = APDUBufSize;
     uint8_t pbRecvBuffer[APDUBufSize];
     uint8_t selfile0[] = {
         0x00, 0xa4, 0x04, 0x00, 0x07, 0xa0, 0x00, 0x00, 0x00, 0x79, 0x01, 0x00
     };
     uint8_t getresp[] = {
         0x00, 0xc0, 0x00, 0x00, 0x07
-    };
-    uint8_t getcert[] = {
-        0x00, 0x36, 0x00, 0x00, 0x00
     };
 
     g_assert_nonnull(reader);
@@ -174,26 +171,7 @@ static void test_cac(void)
     g_assert_cmphex(pbRecvBuffer[7], ==, VCARD7816_SW1_SUCCESS);
     g_assert_cmphex(pbRecvBuffer[8], ==, 0x0);
 
-    len = 0xff;
-    do {
-        dwRecvLength = APDUBufSize;
-        getcert[4] = len;
-        status = vreader_xfr_bytes(reader,
-                                   getcert, sizeof(getcert),
-                                   pbRecvBuffer, &dwRecvLength);
-        g_assert_cmpint(status, ==, VREADER_OK);
-        g_assert_cmpint(dwRecvLength, ==, len + 2);
-        switch (pbRecvBuffer[len]) {
-        case VCARD7816_SW1_WARNING_CHANGE:
-            len = pbRecvBuffer[len+1];
-            break;
-        case VCARD7816_SW1_SUCCESS:
-            len = 0;
-            break;
-        default:
-            g_assert_not_reached();
-        }
-    } while (len != 0);
+    /* The old way of reading certificate does not work anymore */
 
     vreader_free(reader); /* get by id ref */
 }

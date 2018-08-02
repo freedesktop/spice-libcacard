@@ -18,6 +18,45 @@ int key_bits = 0;
 int hw_tests = 0;
 
 
+static void select_coid(VReader *reader, unsigned char *coid,
+                        int expect_success)
+{
+    VReaderStatus status;
+    int dwRecvLength = APDUBufSize;
+    uint8_t pbRecvBuffer[APDUBufSize];
+    uint8_t selfile[] = {
+        0x00, 0xa4, 0x02, 0x00, 0x02, 0x00, 0x00
+    };
+    size_t selfile_len = sizeof(selfile);
+
+    memcpy(&selfile[5], coid, 2);
+
+    g_debug("%s: Select OID 0x%02x 0x%02x", __func__, coid[0], coid[1]);
+    g_assert_nonnull(reader);
+    status = vreader_xfr_bytes(reader,
+                               selfile, selfile_len,
+                               pbRecvBuffer, &dwRecvLength);
+    g_assert_cmpint(status, ==, VREADER_OK);
+    if (expect_success) {
+        g_assert_cmphex(pbRecvBuffer[dwRecvLength-2], ==, VCARD7816_SW1_SUCCESS);
+        g_assert_cmphex(pbRecvBuffer[dwRecvLength-1], ==, 0x00);
+    } else {
+        g_assert_cmphex(pbRecvBuffer[dwRecvLength-2], ==, VCARD7816_SW1_P1_P2_ERROR);
+        g_assert_cmphex(pbRecvBuffer[dwRecvLength-1], ==, 0x82);
+    }
+}
+
+void select_coid_good(VReader *reader, unsigned char *coid)
+{
+    select_coid(reader, coid, 1);
+}
+
+void select_coid_bad(VReader *reader, unsigned char *coid)
+{
+    select_coid(reader, coid, 0);
+}
+
+
 void select_aid(VReader *reader, unsigned char *aid, unsigned int aid_len)
 {
     VReaderStatus status;
@@ -31,7 +70,7 @@ void select_aid(VReader *reader, unsigned char *aid, unsigned int aid_len)
     g_assert_cmpint(aid_len, ==, 7);
     memcpy(&selfile[5], aid, aid_len);
 
-    g_debug("%s: Add applet with AID 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x",
+    g_debug("%s: Select applet with AID 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x",
         __func__, aid[0], aid[1], aid[2], aid[3], aid[4], aid[5], aid[6]);
     g_assert_nonnull(reader);
     status = vreader_xfr_bytes(reader,
@@ -278,7 +317,7 @@ void read_buffer(VReader *reader, uint8_t type, int object_type)
         g_assert_cmphex(pbRecvBuffer[dwRecvLength-2], ==, VCARD7816_SW1_SUCCESS);
         g_assert_cmphex(pbRecvBuffer[dwRecvLength-1], ==, 0x00);
 
-        memcpy(data + offset - 2, pbRecvBuffer, dwReadLength - 2);
+        memcpy(data + offset - 2, pbRecvBuffer, dwReadLength);
         offset += dwLength;
         dwLength -= dwReadLength;
     } while (dwLength != 0);

@@ -506,6 +506,46 @@ static void test_remove(void)
     g_assert_null(reader);
 }
 
+static void test_select_coid(void)
+{
+    VReader *reader = vreader_get_reader_by_id(0);
+    unsigned char coid[] = "\xDB\x00";
+    uint8_t acf_aid[] = {
+        0xA0, 0x00, 0x00, 0x01, 0x16, 0x30, 0x00
+    };
+
+    /* select the CCC */
+    select_applet(reader, TEST_CCC);
+
+    /* get properties */
+    get_properties(reader, TEST_CCC);
+
+    /* select existing OID */
+    select_coid_good(reader, coid);
+
+    /* select non-existing OID */
+    coid[1] = 0xDB;
+    select_coid_bad(reader, coid);
+
+    /* select the ACF */
+    select_aid(reader, acf_aid, sizeof(acf_aid));
+
+    /* select existing default OID */
+    coid[0] = 0x30;
+    coid[1] = 0x00;
+    select_coid_good(reader, coid);
+
+    /* select existing non-default OID */
+    coid[0] = 0x90;
+    select_coid_good(reader, coid);
+
+    /* select non-existing OID */
+    coid[1] = 0x90;
+    select_coid_bad(reader, coid);
+
+    vreader_free(reader); /* get by id ref */
+}
+
 static void libcacard_finalize(void)
 {
     VReader *reader = vreader_get_reader_by_id(0);
@@ -534,6 +574,7 @@ int main(int argc, char *argv[])
     g_test_add_func("/libcacard/list", test_list);
     g_test_add_func("/libcacard/card-remove-insert", test_card_remove_insert);
     g_test_add_func("/libcacard/xfer", test_xfer);
+    g_test_add_func("/libcacard/select-coid", test_select_coid);
     g_test_add_func("/libcacard/cac-pki", test_cac_pki);
     g_test_add_func("/libcacard/cac-ccc", test_cac_ccc);
     g_test_add_func("/libcacard/cac-aca", test_cac_aca);

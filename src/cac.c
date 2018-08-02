@@ -39,6 +39,14 @@ static unsigned char cac_02f2_aid[] = {
     0xa0, 0x00, 0x00, 0x00, 0x79, 0x02, 0xF2 };
 static unsigned char cac_access_control_aid[] = {
     0xa0, 0x00, 0x00, 0x01, 0x16, 0x30, 0x00 };
+static unsigned char cac_pki_certificate_aid[] = {
+    0xa0, 0x00, 0x00, 0x00, 0x79, 0x02, 0xFE };
+static unsigned char cac_pki_credential_aid[] = {
+    0xa0, 0x00, 0x00, 0x00, 0x79, 0x02, 0xFD };
+static unsigned char cac_person_instance_aid[] = {
+    0xa0, 0x00, 0x00, 0x00, 0x79, 0x02, 0x00 };
+static unsigned char cac_personnel_aid[] = {
+    0xa0, 0x00, 0x00, 0x00, 0x79, 0x02, 0x01 };
 
 
 /* private data for PKI applets */
@@ -57,6 +65,11 @@ typedef struct CACACAAppletDataStruct {
     unsigned int pki_applets;
     /* At the moment mostly in cac-aca.c */
 } CACACAAppletData;
+
+/* private data for passthrough applets */
+typedef struct CACPTAppletDataStruct {
+    char *label;
+} CACPTAppletData;
 
 struct coid {
     unsigned char v[2];
@@ -84,6 +97,7 @@ struct VCardAppletPrivateStruct {
         CACPKIAppletData pki_data;
         CACCCCAppletData ccc_data;
         CACACAAppletData aca_data;
+        CACPTAppletData pt_data;
         void *reserved;
     } u;
 };
@@ -140,6 +154,16 @@ cac_create_val_file(struct simpletlv_member *tlv, size_t tlv_len,
                     unsigned char **out)
 {
     return cac_create_file(tlv, tlv_len, out, SIMPLETLV_VALUE);
+}
+
+static inline int
+cac_create_empty_file(unsigned char **out)
+{
+    *out = g_malloc_n(2, sizeof(unsigned char));
+
+    (*out)[0] = 0x00;
+    (*out)[1] = 0x00;
+    return 2;
 }
 
 /*
@@ -424,6 +448,22 @@ cac_applet_pki_reset(VCard *card, int channel)
 }
 
 static VCardStatus
+cac_applet_passthrough_reset(VCard *card, int channel)
+{
+    VCardAppletPrivate *applet_private;
+    applet_private = vcard_get_current_applet_private(card, channel);
+    assert(applet_private);
+
+    g_free(applet_private->tag_buffer);
+    applet_private->tag_buffer = NULL;
+    applet_private->tag_buffer_len = 0;
+    g_free(applet_private->val_buffer);
+    applet_private->val_buffer = NULL;
+    applet_private->val_buffer_len = 0;
+    return VCARD_DONE;
+}
+
+static VCardStatus
 cac_applet_pki_process_apdu(VCard *card, VCardAPDU *apdu,
                             VCardResponse **response)
 {
@@ -613,6 +653,57 @@ cac_applet_aca_process_apdu(VCard *card, VCardAPDU *apdu,
     return ret;
 }
 
+static VCardStatus
+cac_passthrough_container_process_apdu(VCard *card, VCardAPDU *apdu,
+                                       VCardResponse **response)
+{
+    VCardStatus ret = VCARD_FAIL;
+    CACPTAppletData *pt_applet;
+    VCardAppletPrivate *applet_private;
+
+    applet_private = vcard_get_current_applet_private(card, apdu->a_channel);
+    assert(applet_private);
+    pt_applet = &(applet_private->u.pt_data);
+
+    switch (apdu->a_ins) {
+    case CAC_READ_BUFFER:
+        /* The data were not yet retrieved from the card -- do it now */
+        if (applet_private->tag_buffer == NULL || applet_private->val_buffer == NULL) {
+            unsigned char *data;
+            unsigned int data_len;
+            size_t tlv_len;
+            struct simpletlv_member *tlv;
+
+            data = vcard_emul_read_object(card, pt_applet->label, &data_len);
+            if (data) {
+                tlv = simpletlv_parse(data, data_len, &tlv_len);
+                g_free(data);
+
+                /* break the data buffer to TL and V buffers */
+                applet_private->tag_buffer_len = cac_create_tl_file(tlv, tlv_len,
+                    &applet_private->tag_buffer);
+                applet_private->val_buffer_len = cac_create_val_file(tlv, tlv_len,
+                    &applet_private->val_buffer);
+
+                simpletlv_free(tlv, tlv_len);
+            } else {
+                /* there is not a CAC card in a slot ? */
+                /* Return an empty buffer so far */
+                /* TODO try to emulate the expected structures here */
+                applet_private->tag_buffer_len = cac_create_empty_file(
+                    &applet_private->tag_buffer);
+                applet_private->val_buffer_len = cac_create_empty_file(
+                    &applet_private->val_buffer);
+            }
+        }
+        /* fallthrough */
+    default:
+        ret = cac_common_process_apdu_read(card, apdu, response);
+        break;
+    }
+    return ret;
+}
+
 /*
  * utilities for creating and destroying the private applet data
  */
@@ -668,6 +759,24 @@ cac_delete_empty_applet_private(VCardAppletPrivate *applet_private)
     g_free(applet_private->coids);
     g_free(applet_private->tag_buffer);
     g_free(applet_private->val_buffer);
+    /* this one is cloned so needs to be freed */
+    simpletlv_free(applet_private->properties, applet_private->properties_len);
+    g_free(applet_private);
+}
+
+static void
+cac_delete_passthrough_applet_private(VCardAppletPrivate *applet_private)
+{
+    CACPTAppletData *pt_applet_data;
+
+    if (applet_private == NULL) {
+        return;
+    }
+    pt_applet_data = &(applet_private->u.pt_data);
+    g_free(pt_applet_data->label);
+    g_free(applet_private->tag_buffer);
+    g_free(applet_private->val_buffer);
+    g_free(applet_private->coids);
     /* this one is cloned so needs to be freed */
     simpletlv_free(applet_private->properties, applet_private->properties_len);
     g_free(applet_private);
@@ -1730,6 +1839,80 @@ failure:
     return NULL;
 }
 
+static VCardAppletPrivate *
+cac_new_passthrough_applet_private(VCard *card, const char *label,
+                                   unsigned char *aid, unsigned int aid_len)
+{
+    CACPTAppletData *pt_applet_data;
+    VCardAppletPrivate *applet_private;
+
+    unsigned char object_id[] = "\x00\x00";
+    unsigned char buffer_properties[] = "\x00\x00\x00\x00\x00";
+    static struct simpletlv_member tv_buffer[2] = {
+      {CAC_PROPERTIES_OBJECT_ID, 2, {/*.value = object_id*/},
+          SIMPLETLV_TYPE_LEAF},
+      {CAC_PROPERTIES_BUFFER_PROPERTIES, 5, {/*.value = buffer_properties*/},
+          SIMPLETLV_TYPE_LEAF},
+    };
+    unsigned char applet_information[] = "\x10\x02\x06\x02\x03";
+    unsigned char number_objects[] = "\x01";
+    static struct simpletlv_member properties[3] = {
+      {CAC_PROPERTIES_APPLET_INFORMATION, 5, {/*.value = applet_information*/},
+          SIMPLETLV_TYPE_LEAF},
+      {CAC_PROPERTIES_NUMBER_OBJECTS, 1, {/*.value = number_objects*/},
+          SIMPLETLV_TYPE_LEAF},
+      {CAC_PROPERTIES_TV_OBJECT, 2, {/*.child = tv_buffer*/},
+          SIMPLETLV_TYPE_COMPOUND},
+    };
+
+    /* Adjust Object ID based on the AID */
+    object_id[0] = aid[aid_len-2];
+    object_id[1] = aid[aid_len-1];
+
+    /* Create the private data structure */
+    applet_private = g_new0(VCardAppletPrivate, 1);
+    pt_applet_data = &(applet_private->u.pt_data);
+    if (applet_private == NULL)
+        goto failure;
+
+    /* Create Object ID list */
+    applet_private->coids = g_malloc(sizeof(struct coid));
+    memcpy(applet_private->coids[0].v, object_id, 2);
+    applet_private->coids_len = 1;
+
+    pt_applet_data->label = strdup(label);
+
+    /* Create arbitrary sized buffers */
+    buffer_properties[0] = 0x00; // SimpleTLV
+    buffer_properties[1] = 0x60;
+    buffer_properties[2] = 0x00;
+    buffer_properties[3] = 0x60;
+    buffer_properties[4] = 0x00;
+
+    /* Inject Object ID */
+    tv_buffer[0].value.value = object_id;
+    tv_buffer[1].value.value = buffer_properties;
+
+    /* Inject Applet Version */
+    properties[0].value.value = applet_information;
+    properties[1].value.value = number_objects;
+    properties[2].value.child = tv_buffer;
+
+    /* Clone the properties */
+    applet_private->properties_len = 3;
+    applet_private->properties = simpletlv_clone(properties, 3);
+    if (applet_private->properties == NULL)
+        goto failure;
+
+    return applet_private;
+
+failure:
+    if (applet_private != NULL) {
+       cac_delete_passthrough_applet_private(applet_private);
+    }
+    return NULL;
+}
+
 /*
  * create a new ACA applet
  */
@@ -1829,6 +2012,38 @@ failure:
     return NULL;
 }
 
+static VCardApplet *
+cac_new_passthrough_applet(VCard *card, const char *label,
+                           unsigned char *aid, unsigned int aid_len)
+{
+    VCardAppletPrivate *applet_private;
+    VCardApplet *applet;
+
+    applet_private = cac_new_passthrough_applet_private(card, label,
+        aid, aid_len);
+    if (applet_private == NULL) {
+        goto failure;
+    }
+
+    applet = vcard_new_applet(cac_passthrough_container_process_apdu,
+        cac_applet_passthrough_reset, aid, aid_len);
+    if (applet == NULL) {
+        goto failure;
+    }
+
+    vcard_set_applet_private(applet, applet_private,
+                             cac_delete_passthrough_applet_private);
+    applet_private = NULL;
+
+    return applet;
+
+failure:
+    if (applet_private != NULL) {
+        cac_delete_empty_applet_private(applet_private);
+    }
+    return NULL;
+}
+
 /*
  * Initialize the cac card. This is the only public function in this file. All
  * the rest are connected through function pointers.
@@ -1909,6 +2124,50 @@ cac_card_init(VReader *reader, VCard *card,
     /* Empty generic applet (0x02FB) */
     applet = cac_new_empty_applet(cac_02fb_aid, sizeof(cac_02fb_aid),
         coids, 1);
+    if (applet == NULL) {
+        goto failure;
+    }
+    vcard_add_applet(card, applet);
+
+    /* PKI Certificate passthrough applet (0x02FE)
+     * TODO: Find a way how to expose generic non-SimpleTLV buffers
+     * from OpenSC in sane manner
+     */
+    /*applet = cac_new_passthrough_applet(card, "PKI Certificate",
+        cac_pki_certificate_aid, sizeof(cac_pki_certificate_aid));*/
+    coids[0][1] = 0xfe;
+    applet = cac_new_empty_applet(cac_pki_certificate_aid,
+        sizeof(cac_pki_certificate_aid), coids, 1);
+    if (applet == NULL) {
+        goto failure;
+    }
+    vcard_add_applet(card, applet);
+
+    /* PKI Credential passthrough applet (0x02FD)
+     * TODO: Find a way how to expose generic non-SimpleTLV buffers
+     * from OpenSC in sane manner
+     */
+    /*applet = cac_new_passthrough_applet(card, "PKI Credential",
+        cac_pki_credential_aid, sizeof(cac_pki_credential_aid));*/
+    coids[0][1] = 0xfd;
+    applet = cac_new_empty_applet(cac_pki_credential_aid,
+        sizeof(cac_pki_credential_aid), coids, 1);
+    if (applet == NULL) {
+        goto failure;
+    }
+    vcard_add_applet(card, applet);
+
+    /* Person Instance passthrough applet (0x0200) */
+    applet = cac_new_passthrough_applet(card, "Person Instance",
+        cac_person_instance_aid, sizeof(cac_person_instance_aid));
+    if (applet == NULL) {
+        goto failure;
+    }
+    vcard_add_applet(card, applet);
+
+    /* Personnel passthrough applet (0x0200) */
+    applet = cac_new_passthrough_applet(card, "Personnel",
+        cac_personnel_aid, sizeof(cac_personnel_aid));
     if (applet == NULL) {
         goto failure;
     }

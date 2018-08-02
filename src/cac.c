@@ -248,6 +248,9 @@ cac_common_process_apdu(VCard *card, VCardAPDU *apdu, VCardResponse **response)
             ret = VCARD_NEXT;
             break;
         }
+
+        assert(applet_private);
+
         /* handle file id setting */
         if (apdu->a_Lc != 2) {
             *response = vcard_make_response(
@@ -452,32 +455,6 @@ cac_applet_pki_process_apdu(VCard *card, VCardAPDU *apdu,
         break;
     default:
         ret = cac_common_process_apdu_read(card, apdu, response);
-        break;
-    }
-    return ret;
-}
-
-static VCardStatus
-cac_applet_id_process_apdu(VCard *card, VCardAPDU *apdu,
-                           VCardResponse **response)
-{
-    VCardStatus ret = VCARD_FAIL;
-
-    switch (apdu->a_ins) {
-    case CAC_UPDATE_BUFFER:
-        *response = vcard_make_response(
-                        VCARD7816_STATUS_ERROR_CONDITION_NOT_SATISFIED);
-        ret = VCARD_DONE;
-        break;
-    case CAC_READ_BUFFER:
-        /* new CAC call, go ahead and use the old version for now */
-        /* TODO: implement */
-        *response = vcard_make_response(
-                        VCARD7816_STATUS_ERROR_COMMAND_NOT_SUPPORTED);
-        ret = VCARD_DONE;
-        break;
-    default:
-        ret = cac_common_process_apdu(card, apdu, response);
         break;
     }
     return ret;
@@ -1014,8 +991,6 @@ failure:
 }
 
 
-static unsigned char cac_id_aid[] = {
-    0xa0, 0x00, 0x00, 0x00, 0x79, 0x03, 0x00 };
 /*
  * Initialize the cac card. This is the only public function in this file. All
  * the rest are connected through function pointers.
@@ -1052,14 +1027,8 @@ cac_card_init(VReader *reader, VCard *card,
     }
     vcard_add_applet(card, applet);
 
-    /* create a default blank container applet */
-    applet = vcard_new_applet(cac_applet_id_process_apdu,
-                              NULL, cac_id_aid,
-                              sizeof(cac_id_aid));
-    if (applet == NULL) {
-        goto failure;
-    }
-    vcard_add_applet(card, applet);
+    /* GP applet is created from vcard_emul_type() */
+
     return VCARD_DONE;
 
 failure:

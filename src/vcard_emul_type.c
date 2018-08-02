@@ -13,6 +13,7 @@
 #include "vcardt.h"
 #include "vcard_emul_type.h"
 #include "cac.h"
+#include "gp.h"
 #include "glib-compat.h"
 
 VCardStatus vcard_init(VReader *vreader, VCard *vcard,
@@ -20,12 +21,18 @@ VCardStatus vcard_init(VReader *vreader, VCard *vcard,
                        unsigned char *const *cert, int cert_len[],
                        VCardKey *key[], int cert_count)
 {
+    int rv;
+
     switch (type) {
     case VCARD_EMUL_NONE:
         break;
     case VCARD_EMUL_CAC:
-        return cac_card_init(vreader, vcard, params,
-                             cert, cert_len, key,  cert_count);
+        rv = cac_card_init(vreader, vcard, params,
+            cert, cert_len, key,  cert_count);
+        if (rv == VCARD_DONE)
+            rv = gp_card_init(vreader, vcard, params,
+                 cert, cert_len, key,  cert_count);
+	return rv;
     /* add new ones here */
     case VCARD_EMUL_PASSTHRU:
     default:

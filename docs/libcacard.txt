@@ -479,6 +479,7 @@ src/vreadert.h - comon virtual reader types.
 src/vcard_emul_type.c - manage the card type emulators.
 src/vcard_emul_type.h - definitions for card type emulators.
 src/cac.c - card type emulator for CAC cards
+src/gp.c - basic Global Platform card manager emulation
 src/vcard_emul.h - virtual card emulator service definitions.
 src/vcard_emul_nss.c - virtual card emulator implementation for nss.
 src/vscclient.c - socket connection to guest qemu usb driver.

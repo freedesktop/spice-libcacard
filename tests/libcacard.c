@@ -151,7 +151,7 @@ static void test_cac(void)
         0x00, 0xa4, 0x04, 0x00, 0x07, 0xa0, 0x00, 0x00, 0x00, 0x79, 0x01, 0x00
     };
     uint8_t getresp[] = {
-        0x00, 0xc0, 0x00, 0x00, 0x07
+        0x00, 0xc0, 0x00, 0x00, 0x0d
     };
 
     g_assert_nonnull(reader);
@@ -160,16 +160,16 @@ static void test_cac(void)
                                pbRecvBuffer, &dwRecvLength);
     g_assert_cmpint(status, ==, VREADER_OK);
     g_assert_cmphex(pbRecvBuffer[0], ==, VCARD7816_SW1_RESPONSE_BYTES);
-    g_assert_cmphex(pbRecvBuffer[1], ==, 0x7);
+    g_assert_cmphex(pbRecvBuffer[1], ==, 0x0d);
 
     dwRecvLength = APDUBufSize;
     status = vreader_xfr_bytes(reader,
                                getresp, sizeof(getresp),
                                pbRecvBuffer, &dwRecvLength);
     g_assert_cmpint(status, ==, VREADER_OK);
-    g_assert_cmpint(dwRecvLength, ==, 9);
-    g_assert_cmphex(pbRecvBuffer[7], ==, VCARD7816_SW1_SUCCESS);
-    g_assert_cmphex(pbRecvBuffer[8], ==, 0x0);
+    g_assert_cmpint(dwRecvLength, ==, 15);
+    g_assert_cmphex(pbRecvBuffer[dwRecvLength-2], ==, VCARD7816_SW1_SUCCESS);
+    g_assert_cmphex(pbRecvBuffer[dwRecvLength-1], ==, 0x0);
 
     /* The old way of reading certificate does not work anymore */
 

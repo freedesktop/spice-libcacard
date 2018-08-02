@@ -13,6 +13,18 @@
 #include "vcard_emul.h"
 #include "card_7816.h"
 
+
+/* Global Platform Card Manager applet AID */
+static unsigned char gp_aid[] = {
+    0xa0, 0x00, 0x00, 0x00, 0x03, 0x00, 0x00 };
+/* Global Platfrom Card Manager response on select applet */
+static unsigned char gp_response[] = {
+    0x6F, 0x19, 0x84, 0x08, 0xA0, 0x00, 0x00, 0x00,
+    0x03, 0x00, 0x00, 0x00, 0xA5, 0x0D, 0x9F, 0x6E,
+    0x06, 0x12, 0x91, 0x51, 0x81, 0x01, 0x00, 0x9F,
+    0x65, 0x01, 0xFF};
+
+
 /*
  * set the status bytes based on the status word
  */
@@ -95,6 +107,7 @@ vcard_response_new(VCard *card, unsigned char *buf,
 {
     VCardResponse *new_response;
 
+    g_debug("%s: Sending response (len = %d, Le = %d)", __func__, len, Le);
     if (len > Le) {
         return vcard_init_buffer_response(card, buf, len);
     }
@@ -115,6 +128,7 @@ vcard_response_new_bytes(VCard *card, unsigned char *buf, int len, int Le,
 {
     VCardResponse *new_response;
 
+    g_debug("%s: Sending response (len = %d, Le = %d)", __func__, len, Le);
     if (len > Le) {
         return vcard_init_buffer_response(card, buf, len);
     }
@@ -615,6 +629,7 @@ vcard7816_vm_process_apdu(VCard *card, VCardAPDU *apdu,
         break;
 
     case  VCARD7816_INS_SELECT_FILE:
+        /* GSC-IS: 5.3.3.2 Select Applet APDU: P1 = 0x04 */
         if (apdu->a_p1 != 0x04) {
             *response = vcard_make_response(
                             VCARD7816_STATUS_ERROR_FUNCTION_NOT_SUPPORTED);
@@ -622,16 +637,48 @@ vcard7816_vm_process_apdu(VCard *card, VCardAPDU *apdu,
         }
 
         /* side effect, deselect the current applet if no applet has been found
-         * */
+         */
         current_applet = vcard_find_applet(card, apdu->a_body, apdu->a_Lc);
         vcard_select_applet(card, apdu->a_channel, current_applet);
         if (current_applet) {
-            unsigned char *aid;
-            int aid_len;
-            aid = vcard_applet_get_aid(current_applet, &aid_len);
-            *response = vcard_response_new(card, aid, aid_len, apdu->a_Le,
-                                          VCARD7816_STATUS_SUCCESS);
+            VCardApplet *gp_applet = vcard_find_applet(card,
+                gp_aid, sizeof(gp_aid));
+            if (current_applet == gp_applet) {
+                /* if the new applet is Global Platform Card Manager, we need to
+                 * return a response (from Card Specification v2.3.1):
+                 *
+                 * 6F 19 : FCI Template
+                 *  84 08 : Application / file AID
+                 *   A0 00 00 00 03 00 00 00
+                 *  A5 0D : Proprietary data
+                 *   9F 6E 06 : Application Producution Life Cycle
+                 *    12 91 51 81 01 00
+                 *   9F 65 01 : Maximum Length of data field in comand message
+                 *    FF
+                 */
+                *response = vcard_response_new(card, gp_response,
+                    sizeof(gp_response), apdu->a_Le, VCARD7816_STATUS_SUCCESS);
+            } else {
+                static unsigned char fci_template[] = {
+                    0x6F, 0x0B, 0x84, 0x07, 0xA0, 0x00, 0x00, 0x00,
+                    0x79, 0x03, 0x00, 0xA5, 0x00};
+                /* with GSC-IS 2 applets, we do not need to return anything
+                 * for select applet, but cards generally do, at least this
+                 * FCI template stub:
+                 *
+                 * 6F 0B : FCI Template
+                 *  84 07 : Application / file AID
+                 *   A0 00 00 00 79 03 00
+                 *  A5 00 : Porprietary data
+                 */
+                /* Insert the correct AID in the structure */
+                g_assert_cmpint(apdu->a_Lc, ==, 7);
+                memcpy(&fci_template[4], apdu->a_body, apdu->a_Lc);
+                *response = vcard_response_new(card, fci_template,
+                    sizeof(fci_template), apdu->a_Le, VCARD7816_STATUS_SUCCESS);
+            }
         } else {
+            /* the real CAC returns (SW1=0x6A, SW2=0x82) */
             *response = vcard_make_response(
                              VCARD7816_STATUS_ERROR_FILE_NOT_FOUND);
         }

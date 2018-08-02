@@ -5,6 +5,8 @@ lib_LTLIBRARIES = libcacard.la
 
 libcacard_la_SOURCES =				\
 	src/cac.c				\
+	src/gp.c				\
+	src/gp.h				\
 	src/capcsc.h				\
 	src/card_7816.c				\
 	src/common.c				\

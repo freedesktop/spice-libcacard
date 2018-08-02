@@ -72,11 +72,28 @@ endif
 
 include $(srcdir)/build-aux/glib-tap.mk
 
+tests/softhsm2.conf:
+	$(AM_V_GEN)(cd tests/ && $(abs_srcdir)/tests/setup-softhsm2.sh)
+
+clean-local:
+	rm -rf tests/hwdb tests/tokens tests/softhsm2.conf
+
+EXTRA_DIST += tests/setup-softhsm2.sh
+
+AM_TESTS_ENVIRONMENT += \
+	SOFTHSM2_CONF=tests/softhsm2.conf
+
 test_programs =					\
 	tests/libcacard				\
 	tests/simpletlv				\
+	tests/hwtests				\
 	$(NULL)
 
+tests_libcacard_SOURCES =			\
+	tests/common.c				\
+	tests/common.h				\
+	tests/libcacard.c			\
+	$(NULL)
 tests_libcacard_LDADD =				\
 	libcacard.la				\
 	src/common.lo				\
@@ -88,6 +105,18 @@ tests_simpletlv_LDADD =				\
 	src/common.lo				\
 	src/simpletlv.lo			\
 	$(NULL)
+
+tests_hwtests_SOURCES =				\
+	tests/common.c				\
+	tests/common.h				\
+	tests/hwtests.c				\
+	$(NULL)
+tests_hwtests_LDADD =				\
+	libcacard.la				\
+	src/common.lo				\
+	src/simpletlv.lo			\
+	$(NULL)
+tests_hwtests_DEPENDENCIES = tests/softhsm2.conf
 
 @CODE_COVERAGE_RULES@
 

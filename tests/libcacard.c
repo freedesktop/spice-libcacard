@@ -1,4 +1,5 @@
 #include <glib.h>
+#include <string.h>
 #include "libcacard.h"
 #include "simpletlv.h"
 
@@ -153,12 +154,13 @@ static void get_properties(VReader *reader, int object_type)
 {
     int dwRecvLength = APDUBufSize;
     VReaderStatus status;
-    uint8_t pbRecvBuffer[APDUBufSize], *p, *p_end;
+    uint8_t pbRecvBuffer[APDUBufSize], *p, *p_end, *p2, *p2_end;
     uint8_t get_properties[] = {
         /* Get properties */
         0x80, 0x56, 0x01, 0x00, 0x00
     };
     int verified_pki_properties = 0;
+    int num_objects = 0, num_objects_expected = -1;
 
     status = vreader_xfr_bytes(reader,
                                get_properties, sizeof(get_properties),
@@ -193,9 +195,26 @@ static void get_properties(VReader *reader, int object_type)
         g_assert_cmpint(vlen, <=, p_end - p);
         g_debug("Tag: 0x%02x, Len: %lu", tag, vlen);
 
-        if (tag == 0x51 /* PKI OBJECT */) {
+        switch (tag) {
+        case 0x01: /* Applet Information */
+            g_assert_cmpint(vlen, ==, 5);
+            g_assert_cmphex(*p, ==, 0x10); /* Applet family */
+            break;
+
+        case 0x40: /* Number of objects */
+            g_assert_cmpint(vlen, ==, 1);
+            if (num_objects_expected != -1) {
+                g_debug("Received multiple number-of-objects tags");
+                g_assert_not_reached();
+            }
+            num_objects_expected = *p;
+            break;
+
+        case 0x50: /* TV Object */
+        case 0x51: /* PKI Object */
             /* recursive SimpleTLV structure */
-            uint8_t *p2 = p, *p2_end = p + vlen;
+            p2 = p;
+            p2_end = p + vlen;
             while (p2 < p2_end) {
                 uint8_t tag2;
                 size_t vlen2;
@@ -206,18 +225,51 @@ static void get_properties(VReader *reader, int object_type)
                 g_assert_cmpint(vlen2, <=, p2_end - p2);
                 g_debug("    Tag: 0x%02x, Len: %lu", tag2, vlen2);
 
-                if (tag2 == 0x43 /* PKI PROPERTIES */) {
+                switch (tag2) {
+                case 0x41: /* Object ID */
+                    if (object_type == TEST_PKI) {
+                        // XXX only the first PKI for now
+                        g_assert_cmpmem(p2, vlen2, "\x01\x00", 2);
+                    } else if (object_type == TEST_CCC) {
+                        g_assert_cmpmem(p2, vlen2, "\xDB\x00", 2);
+                    } else {
+                        g_debug("Got unknown object type");
+                        g_assert_not_reached();
+                    }
+                    break;
+
+                case 0x42: /* Buffer properties */
+                    g_assert_cmpint(vlen2, ==, 5);
+                    g_assert_cmpint(p2[0], ==, 0x00);
+                    break;
+
+                case 0x43: /* PKI properties */
                     /* For now, expecting 2048 b RSA keys */
                     g_assert_cmphex(p2[0], ==, 0x06);
                     g_assert_cmphex(p2[1], ==, (2048 / 8 / 8));
                     g_assert_cmphex(p2[2], ==, 0x01);
                     g_assert_cmphex(p2[3], ==, 0x01);
                     verified_pki_properties = 1;
+                    break;
+
+                default:
+                    g_debug("Unknown tag in object: 0x%02x", tag2);
+                    g_assert_not_reached();
                 }
                 p2 += vlen2;
             }
+            /* one more object processed */
+            num_objects++;
+            break;
+        default:
+            g_debug("Unknown tag in properties buffer: 0x%02x", tag);
+            g_assert_not_reached();
         }
         p += vlen;
+    }
+
+    if (num_objects_expected != -1) {
+        g_assert_cmpint(num_objects, ==, num_objects_expected);
     }
 
     if (object_type == TEST_PKI) {

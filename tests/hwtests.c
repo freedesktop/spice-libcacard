@@ -106,14 +106,14 @@ static void test_list(void)
         }
         vreader_free(r);
     }
+    vreader_list_delete(list);
+
     if (cards == 0) {
-        vreader_list_delete(list);
         g_test_skip("No physical card found");
         return;
     }
 
     g_assert_cmpint(cards, ==, 1);
-    vreader_list_delete(list);
 }
 
 static void do_login(VReader *reader)
@@ -247,40 +247,6 @@ static void test_sign(void)
     vreader_free(reader); /* get by id ref */
 }
 
-static void test_empty_applets_hw(void) {
-
-    VReader *reader = vreader_get_reader_by_id(0);
-
-    /* Skip the HW tests without physical card */
-    if (vreader_card_is_present(reader) != VREADER_OK) {
-        vreader_free(reader);
-        g_test_skip("No physical card found");
-        return;
-    }
-
-    vreader_free(reader); /* get by id ref */
-
-    /* run the actual test */
-    test_empty_applets();
-}
-
-static void test_get_response_hw(void) {
-
-    VReader *reader = vreader_get_reader_by_id(0);
-
-    /* Skip the HW tests without physical card */
-    if (vreader_card_is_present(reader) != VREADER_OK) {
-        vreader_free(reader);
-        g_test_skip("No physical card found");
-        return;
-    }
-
-    vreader_free(reader); /* get by id ref */
-
-    /* run the actual test */
-    test_get_response();
-}
-
 /* Try to pass bad formatted PKCS#1.5 data and make sure the libcacard does not
  * crash while handling them
  */
@@ -387,12 +353,12 @@ int main(int argc, char *argv[])
 
     g_test_add_func("/hw-tests/list", test_list);
     g_test_add_func("/hw-tests/passthrough-applet", test_passthrough_applets);
-    g_test_add_func("/hw-tests/login", test_login);
     g_test_add_func("/hw-tests/check-login-count", check_login_count);
+    g_test_add_func("/hw-tests/login", test_login);
     g_test_add_func("/hw-tests/sign", test_sign);
     g_test_add_func("/hw-tests/sign-bad-data", test_sign_bad_data_x509);
-    g_test_add_func("/hw-tests/empty-applets", test_empty_applets_hw);
-    g_test_add_func("/hw-tests/get-response", test_get_response_hw);
+    g_test_add_func("/hw-tests/empty-applets", test_empty_applets);
+    g_test_add_func("/hw-tests/get-response", test_get_response);
 
     ret = g_test_run();
 

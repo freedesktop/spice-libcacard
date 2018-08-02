@@ -583,6 +583,12 @@ void test_empty_applets(void)
 
     VReader *reader = vreader_get_reader_by_id(0);
 
+    /* Skip the HW tests without physical card */
+    if (isHWTests() && vreader_card_is_present(reader) != VREADER_OK) {
+        vreader_free(reader);
+        g_test_skip("No physical card found");
+        return;
+    }
 
     /* select the empty applet A00000007902FB, which should be empty buffer */
     select_aid(reader, applet_02fb, sizeof(applet_02fb));
@@ -673,6 +679,13 @@ void test_get_response(void)
         0x00, 0x52, 0x00, 0x00, 0x02, 0x01, 0x02 /* no L_e */
     };
 
+    /* Skip the HW tests without physical card */
+    if (isHWTests() && vreader_card_is_present(reader) != VREADER_OK) {
+        vreader_free(reader);
+        g_test_skip("No physical card found");
+        return;
+    }
+
     /* select CCC */
     select_applet(reader, TEST_CCC);
 
@@ -756,6 +769,13 @@ void check_login_count(void)
         0x00, 0x20, 0x00, 0x00, 0x00
     };
     g_assert_nonnull(reader);
+
+    /* Skip the HW tests without physical card */
+    if (isHWTests() && vreader_card_is_present(reader) != VREADER_OK) {
+        vreader_free(reader);
+        g_test_skip("No physical card found");
+        return;
+    }
 
     /* Get login count */
     status = vreader_xfr_bytes(reader,

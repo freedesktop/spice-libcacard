@@ -26,6 +26,18 @@
 #define CAC_PKI_TAG_CERTIFICATE               0x70
 #define CAC_PKI_TAG_CERTINFO                  0x71
 
+/* ACA applet tags */
+#define CAC_ACR_NUM_ENTRIES                   0xA1
+#define CAC_ACR_ENTRY                         0xA0
+#define CAC_ACR_NUM_APPLETS                   0x81
+#define CAC_ACR_APPLET_ACR                    0x80
+#define CAC_ACR_OBJECT_ACR                    0x82
+#define CAC_ACR_AMP_NUM_ENTRIES               0x91
+#define CAC_ACR_AMP_ENTRY                     0x90
+#define CAC_ACR_AID                           0x92
+#define CAC_ACR_SERVICE_NUM_ENTRIES           0x94
+#define CAC_ACR_SERVICE_ENTRY                 0x93
+
 /* CCC applet tags */
 #define CAC_CCC_CARD_IDENTIFIER               0xF0
 #define CAC_CCC_CAPABILITY_CONTAINER_VERSION  0xF1

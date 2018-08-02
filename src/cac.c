@@ -14,12 +14,15 @@
 #include <stdbool.h>
 
 #include "cac.h"
+#include "cac-aca.h"
 #include "vcard.h"
 #include "vcard_emul.h"
 #include "card_7816.h"
 #include "simpletlv.h"
 #include "common.h"
 
+static unsigned char cac_aca_aid[] = {
+    0xa0, 0x00, 0x00, 0x00, 0x79, 0x03, 0x00 };
 static unsigned char cac_ccc_aid[] = {
     0xa0, 0x00, 0x00, 0x01, 0x16, 0xDB, 0x00 };
 
@@ -34,6 +37,11 @@ typedef struct CACPKIAppletDataStruct {
 /* private data for CCC container */
 typedef struct CACCCCAppletDataStruct {
 } CACCCCAppletData;
+
+/* private data for ACA container */
+typedef struct CACACAAppletDataStruct {
+    /* At the moment mostly in cac-aca.c */
+} CACACAAppletData;
 
 /*
  * CAC applet private data
@@ -50,6 +58,7 @@ struct VCardAppletPrivateStruct {
     union {
         CACPKIAppletData pki_data;
         CACCCCAppletData ccc_data;
+        CACACAAppletData aca_data;
         void *reserved;
     } u;
 };
@@ -460,6 +469,115 @@ cac_applet_pki_process_apdu(VCard *card, VCardAPDU *apdu,
     return ret;
 }
 
+static VCardStatus
+cac_applet_aca_process_apdu(VCard *card, VCardAPDU *apdu,
+                            VCardResponse **response)
+{
+    VCardStatus ret = VCARD_FAIL;
+    VCardAppletPrivate *applet_private;
+
+    applet_private = vcard_get_current_applet_private(card, apdu->a_channel);
+    assert(applet_private);
+
+    switch (apdu->a_ins) {
+    case CAC_GET_ACR:
+        /* generate some ACRs Chapter 5.3.3.5
+         * Works only on the ACA container, not the others!
+         */
+        if (apdu->a_p2 != 0x00) {
+            /* P2 needs to be 0x00 */
+            *response = vcard_make_response(
+                        VCARD7816_STATUS_ERROR_P1_P2_INCORRECT);
+            ret = VCARD_DONE;
+            break;
+        }
+        switch (apdu->a_p1) {
+        case 0x00:
+            /* All ACR table entries are to be extracted */
+            if (apdu->a_Lc != 0) {
+                *response = vcard_make_response(
+                            VCARD7816_STATUS_ERROR_DATA_INVALID);
+                break;
+            }
+            *response = cac_aca_get_acr_response(card, apdu->a_Le, NULL);
+            break;
+
+        case 0x01:
+            /* Only one entry of the ACR table is extracted based on ACRID */
+            if (apdu->a_Lc != 1) { /* ACRID is one byte */
+                *response = vcard_make_response(
+                            VCARD7816_STATUS_ERROR_DATA_INVALID);
+                break;
+            }
+            *response = cac_aca_get_acr_response(card, apdu->a_Le, apdu->a_body);
+            break;
+        case 0x10:
+            /* All Applet/Object ACR table entries are to be extracted */
+            if (apdu->a_Lc != 0) {
+                *response = vcard_make_response(
+                            VCARD7816_STATUS_ERROR_DATA_INVALID);
+                break;
+            }
+            *response = cac_aca_get_applet_acr_response(card, apdu->a_Le,
+                NULL, 0, NULL);
+            break;
+
+        case 0x11:
+            /* Only the entries of the Applet/Object ACR table for
+             * one applet are extracted based on applet AID */
+            if (apdu->a_Lc != 7) {
+                *response = vcard_make_response(
+                            VCARD7816_STATUS_ERROR_DATA_INVALID);
+                break;
+            }
+            *response = cac_aca_get_applet_acr_response(card, apdu->a_Le,
+                apdu->a_body, apdu->a_Lc, NULL);
+            break;
+
+        case 0x12:
+            /* Only one entry of the Applet/Object ACR table for
+             * an object is extracted based on object ID */
+            if (apdu->a_Lc != 2) {
+                *response = vcard_make_response(
+                            VCARD7816_STATUS_ERROR_DATA_INVALID);
+                break;
+            }
+            *response = cac_aca_get_applet_acr_response(card, apdu->a_Le,
+                NULL, 0, apdu->a_body);
+            break;
+
+        case 0x20:
+            /* The Access Method Provider table is extracted. */
+            if (apdu->a_Lc != 0) {
+                *response = vcard_make_response(
+                            VCARD7816_STATUS_ERROR_DATA_INVALID);
+                break;
+            }
+            *response = cac_aca_get_amp_response(card, apdu->a_Le);
+            break;
+        case 0x21:
+            /* The Service Applet table is extracted. */
+            if (apdu->a_Lc != 0) {
+                *response = vcard_make_response(
+                            VCARD7816_STATUS_ERROR_DATA_INVALID);
+                break;
+            }
+            *response = cac_aca_get_service_response(card, apdu->a_Le);
+            break;
+        default:
+            *response = vcard_make_response(
+                VCARD7816_STATUS_ERROR_COMMAND_NOT_SUPPORTED);
+            break;
+        }
+        ret = VCARD_DONE;
+        break;
+    default:
+        ret = cac_common_process_apdu(card, apdu, response);
+        break;
+    }
+    return ret;
+}
+
 /*
  * utilities for creating and destroying the private applet data
  */
@@ -491,6 +609,15 @@ cac_delete_ccc_applet_private(VCardAppletPrivate *applet_private)
     }
     g_free(applet_private->tag_buffer);
     g_free(applet_private->val_buffer);
+    g_free(applet_private);
+}
+
+static void
+cac_delete_aca_applet_private(VCardAppletPrivate *applet_private)
+{
+    if (applet_private == NULL) {
+        return;
+    }
     g_free(applet_private);
 }
 
@@ -953,6 +1080,76 @@ failure:
     return NULL;
 }
 
+static VCardAppletPrivate *
+cac_new_aca_applet_private(void)
+{
+    VCardAppletPrivate *applet_private;
+
+    /* ACA applet Properties ex.:
+     * 01  Tag: Applet Information
+     * 05  Length
+     *    10  Applet family
+     *    02 06 02 02  Applet version
+     */
+    static unsigned char applet_information[] = "\x10\x02\x06\x02\x02";
+    static struct simpletlv_member properties[1] = {
+      {CAC_PROPERTIES_APPLET_INFORMATION, 5, {/*.value = applet_information*/},
+          SIMPLETLV_TYPE_LEAF},
+    };
+
+    /* Inject Applet Version into Applet information */
+    properties[0].value.value = applet_information;
+
+    /* Create the private data structure */
+    applet_private = g_new0(VCardAppletPrivate, 1);
+    if (applet_private == NULL)
+        goto failure;
+
+    /* Link the properties */
+    applet_private->properties = properties;
+    applet_private->properties_len = 1;
+
+    return applet_private;
+
+failure:
+    if (applet_private != NULL) {
+       cac_delete_aca_applet_private(applet_private);
+    }
+    return NULL;
+}
+
+
+/*
+ * create a new ACA applet
+ */
+static VCardApplet *
+cac_new_aca_applet(void)
+{
+    VCardAppletPrivate *applet_private;
+    VCardApplet *applet;
+
+    applet_private = cac_new_aca_applet_private();
+    if (applet_private == NULL) {
+        goto failure;
+    }
+    applet = vcard_new_applet(cac_applet_aca_process_apdu, NULL,
+                              cac_aca_aid, sizeof(cac_aca_aid));
+    if (applet == NULL) {
+        goto failure;
+    }
+    vcard_set_applet_private(applet, applet_private,
+                             cac_delete_aca_applet_private);
+    applet_private = NULL;
+
+    return applet;
+
+failure:
+    if (applet_private != NULL) {
+        cac_delete_aca_applet_private(applet_private);
+    }
+    return NULL;
+}
+
 
 /*
  * create a new cac applet which links to a given cert
@@ -1017,6 +1214,13 @@ cac_card_init(VReader *reader, VCard *card,
         }
         vcard_add_applet(card, applet);
     }
+
+    /* create a ACA applet, to list access rules */
+    applet = cac_new_aca_applet();
+    if (applet == NULL) {
+        goto failure;
+    }
+    vcard_add_applet(card, applet);
 
     /* create a CCC container, which is need for CAC recognition,
      * which should be default

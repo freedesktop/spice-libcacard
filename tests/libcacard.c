@@ -431,15 +431,17 @@ static void get_acr(VReader *reader)
 
 }
 
-static void read_buffer(VReader *reader, uint8_t type)
+static void read_buffer(VReader *reader, uint8_t type, int object_type)
 {
     int dwRecvLength = APDUBufSize, dwLength, dwReadLength, offset;
     VReaderStatus status;
     uint8_t pbRecvBuffer[APDUBufSize];
+    uint8_t *data;
     uint8_t read_buffer[] = {
         /*Read Buffer  OFFSET         TYPE LENGTH a_Le */
         0x80, 0x52, 0x00, 0x00, 0x02, 0x01, 0x02, 0x02
     };
+    int card_urls = 0;
 
     dwRecvLength = 4;
     read_buffer[5] = type;
@@ -452,9 +454,9 @@ static void read_buffer(VReader *reader, uint8_t type)
     g_assert_cmphex(pbRecvBuffer[3], ==, 0x00);
 
     dwLength = (pbRecvBuffer[0] & 0xff) | ((pbRecvBuffer[1] << 8) & 0xff);
+    data = g_malloc(dwLength);
     offset = 0x02;
     do {
-        /* This returns only success -- get response is needed to get the actual data */
         dwReadLength = MIN(255, dwLength);
         dwRecvLength = dwReadLength+2;
         read_buffer[2] = (unsigned char) ((offset >> 8) & 0xff);
@@ -469,9 +471,41 @@ static void read_buffer(VReader *reader, uint8_t type)
         g_assert_cmphex(pbRecvBuffer[dwRecvLength-2], ==, VCARD7816_SW1_SUCCESS);
         g_assert_cmphex(pbRecvBuffer[dwRecvLength-1], ==, 0x00);
 
-        dwLength -= dwReadLength;
+        memcpy(data + offset - 2, pbRecvBuffer, dwReadLength);
         offset += dwLength;
+        dwLength -= dwReadLength;
     } while (dwLength != 0);
+
+    /* Try to parse the TAG buffer, if it makes sense */
+    if (type == CAC_FILE_TAG) {
+        uint8_t *p = data;
+        uint8_t *p_end = p + offset - 2;
+        while (p < p_end) {
+            uint8_t tag;
+            size_t vlen;
+            if (simpletlv_read_tag(&p, p_end - p, &tag, &vlen) < 0) {
+                g_debug("The generated SimpleTLV can not be parsed");
+                g_assert_not_reached();
+            }
+            g_debug("Tag: 0x%02x, Len: %lu", tag, vlen);
+
+            switch (tag) {
+            case 0xF3: /* CardURL from CCC */
+                if (object_type == TEST_CCC) {
+                    card_urls++;
+                } else {
+                    g_debug("CardURLs found outside of CCC buffer");
+                    g_assert_not_reached();
+                }
+                break;
+            default:
+                break;
+            }
+        }
+        if (object_type == TEST_CCC)
+            g_assert_cmpint(card_urls, ==, 4);
+    }
+    g_free(data);
 }
 
 static void select_aid(VReader *reader, int type)
@@ -535,10 +569,10 @@ static void test_cac_pki(void)
     get_properties(reader, TEST_PKI);
 
     /* get the TAG buffer length */
-    read_buffer(reader, CAC_FILE_TAG);
+    read_buffer(reader, CAC_FILE_TAG, TEST_PKI);
 
     /* get the VALUE buffer length */
-    read_buffer(reader, CAC_FILE_VALUE);
+    read_buffer(reader, CAC_FILE_VALUE, TEST_PKI);
 
     vreader_free(reader); /* get by id ref */
 }
@@ -554,10 +588,10 @@ static void test_cac_ccc(void)
     get_properties(reader, TEST_CCC);
 
     /* get the TAG buffer length */
-    read_buffer(reader, CAC_FILE_TAG);
+    read_buffer(reader, CAC_FILE_TAG, TEST_CCC);
 
     /* get the VALUE buffer length */
-    read_buffer(reader, CAC_FILE_VALUE);
+    read_buffer(reader, CAC_FILE_VALUE, TEST_CCC);
 
     vreader_free(reader); /* get by id ref */
 }

@@ -4,8 +4,8 @@
  * Copyright 2018 Red Hat, Inc.
  *
  * Authors:
- *  Jakub Jelen <jjelen@redhat.com>
  *  Marc-André Lureau <marcandre.lureau@redhat.com>
+ *  Jakub Jelen <jjelen@redhat.com>
  *
  * This code is licensed under the GNU LGPL, version 2.1 or later.
  * See the COPYING file in the top-level directory.
@@ -542,7 +542,10 @@ static void test_sign(void)
     /* select the PKI */
     select_applet(reader, TEST_PKI);
 
-    do_sign(reader);
+    do_sign(reader, 0);
+
+    /* test also multipart signatures */
+    do_sign(reader, 1);
 
     vreader_free(reader); /* get by id ref */
 }
@@ -614,6 +617,10 @@ static void test_gp_applet(void)
         /* Get Response (max we can get) */
         0x00, 0xc0, 0x00, 0x00, 0x00
     };
+    uint8_t getdata[] = {
+        /* Get Response (max we can get) */
+        0x00, 0xca, 0x9f, 0x7f, 0x00
+    };
     VReader *reader = vreader_get_reader_by_id(0);
 
     /* select GP and wait for the response bytes */
@@ -632,6 +639,429 @@ static void test_gp_applet(void)
     /* We made sure the selection of other applets does not return anything
      * in select_aid()
      */
+
+    /* ask the applet for some data */
+    dwRecvLength = APDUBufSize;
+    status = vreader_xfr_bytes(reader,
+                               getdata, sizeof(getdata),
+                               pbRecvBuffer, &dwRecvLength);
+    g_assert_cmpint(status, ==, VREADER_OK);
+    g_assert_cmpint(dwRecvLength, ==, 0x2F);
+    g_assert_cmpint(pbRecvBuffer[dwRecvLength-2], ==, VCARD7816_SW1_SUCCESS);
+    g_assert_cmpint(pbRecvBuffer[dwRecvLength-1], ==, 0x00);
+
+    vreader_free(reader); /* get by id ref */
+}
+
+static void test_invalid_properties(void)
+{
+    VReader *reader = vreader_get_reader_by_id(0);
+    VReaderStatus status;
+    int dwRecvLength = APDUBufSize;
+    uint8_t pbRecvBuffer[APDUBufSize];
+    uint8_t get_properties[] = {
+        /* Get properties       [Le]  [RFU] */
+        0x80, 0x56, 0x01, 0x00, 0x00, 0x00, 0x00
+    };
+    size_t get_properties_len = 5;
+
+    g_assert_nonnull(reader);
+
+    select_applet(reader, TEST_CCC);
+
+    /* P1 = 0x00 is not supported */
+    get_properties[2] = 0x00;
+    dwRecvLength = APDUBufSize;
+    status = vreader_xfr_bytes(reader,
+                               get_properties, get_properties_len,
+                               pbRecvBuffer, &dwRecvLength);
+    g_assert_cmpint(status, ==, VREADER_OK);
+    g_assert_cmpint(dwRecvLength, ==, 2);
+    g_assert_cmpint(pbRecvBuffer[0], ==, VCARD7816_SW1_P1_P2_ERROR);
+    g_assert_cmpint(pbRecvBuffer[1], ==, 0x86);
+    get_properties[2] = 0x01;
+
+    /* P1 = 0x01 fails with additional data provided */
+    get_properties[2] = 0x01;
+    get_properties[4] = 0x02;
+    dwRecvLength = APDUBufSize;
+    status = vreader_xfr_bytes(reader,
+                               get_properties, sizeof(get_properties),
+                               pbRecvBuffer, &dwRecvLength);
+    g_assert_cmpint(status, ==, VREADER_OK);
+    g_assert_cmpint(dwRecvLength, ==, 2);
+    g_assert_cmpint(pbRecvBuffer[0], ==, VCARD7816_SW1_COMMAND_ERROR);
+    g_assert_cmpint(pbRecvBuffer[1], ==, 0x84);
+    get_properties[2] = 0x01;
+
+    /* P2 needs to be zero */
+    get_properties[3] = 0x01;
+    get_properties[4] = 0x00;
+    dwRecvLength = APDUBufSize;
+    status = vreader_xfr_bytes(reader,
+                               get_properties, get_properties_len,
+                               pbRecvBuffer, &dwRecvLength);
+    g_assert_cmpint(status, ==, VREADER_OK);
+    g_assert_cmpint(dwRecvLength, ==, 2);
+    g_assert_cmpint(pbRecvBuffer[0], ==, VCARD7816_SW1_P1_P2_ERROR);
+    g_assert_cmpint(pbRecvBuffer[1], ==, 0x86);
+    get_properties[3] = 0x00;
+
+    /* P1 = 0x02 requires some data (empty is invalid) */
+    get_properties[2] = 0x02;
+    dwRecvLength = APDUBufSize;
+    status = vreader_xfr_bytes(reader,
+                               get_properties, get_properties_len,
+                               pbRecvBuffer, &dwRecvLength);
+    g_assert_cmpint(status, ==, VREADER_OK);
+    g_assert_cmpint(dwRecvLength, ==, 2);
+    g_assert_cmpint(pbRecvBuffer[0], ==, VCARD7816_SW1_COMMAND_ERROR);
+    g_assert_cmpint(pbRecvBuffer[1], ==, 0x84);
+
+    /* P1 = 0x02 with invalid data fails */
+    get_properties[4] = 0x02;
+    get_properties[6] = 0xFF;
+    dwRecvLength = APDUBufSize;
+    status = vreader_xfr_bytes(reader,
+                               get_properties, sizeof(get_properties),
+                               pbRecvBuffer, &dwRecvLength);
+    g_assert_cmpint(status, ==, VREADER_OK);
+    g_assert_cmpint(dwRecvLength, ==, 2);
+    g_assert_cmpint(pbRecvBuffer[0], ==, VCARD7816_SW1_P1_P2_ERROR);
+    g_assert_cmpint(pbRecvBuffer[1], ==, 0x88);
+
+    /* P1 = 0x88 is invalid */
+    get_properties[2] = 0x88;
+    dwRecvLength = APDUBufSize;
+    status = vreader_xfr_bytes(reader,
+                               get_properties, get_properties_len,
+                               pbRecvBuffer, &dwRecvLength);
+    g_assert_cmpint(status, ==, VREADER_OK);
+    g_assert_cmpint(dwRecvLength, ==, 2);
+    g_assert_cmpint(pbRecvBuffer[0], ==, VCARD7816_SW1_P1_P2_ERROR);
+    g_assert_cmpint(pbRecvBuffer[1], ==, 0x86);
+
+    vreader_free(reader); /* get by id ref */
+}
+
+static void test_invalid_select(void)
+{
+    VReader *reader = vreader_get_reader_by_id(0);
+    VReaderStatus status;
+    int dwRecvLength = APDUBufSize;
+    uint8_t pbRecvBuffer[APDUBufSize];
+    uint8_t selfile[] = {
+        0x00, 0xa4, 0x02, 0x00, 0x07, 0xa0, 0x00, 0x00, 0x00, 0x79, 0x01, 0x00
+    };
+
+    g_assert_nonnull(reader);
+
+    select_applet(reader, TEST_CCC);
+
+    /* CAC applets handle only the P1 = 0x02: Empty OID is not valid */
+    selfile[4] = 0x00;
+    dwRecvLength = APDUBufSize;
+    status = vreader_xfr_bytes(reader,
+                               selfile, 5,
+                               pbRecvBuffer, &dwRecvLength);
+    g_assert_cmpint(status, ==, VREADER_OK);
+    g_assert_cmpint(dwRecvLength, ==, 2);
+    g_assert_cmpint(pbRecvBuffer[0], ==, VCARD7816_SW1_COMMAND_ERROR);
+    g_assert_cmpint(pbRecvBuffer[1], ==, 0x84);
+
+    /* CAC applets handle only the P1 = 0x02: 7B OID is not valid */
+    selfile[4] = 0x07;
+    dwRecvLength = APDUBufSize;
+    status = vreader_xfr_bytes(reader,
+                               selfile, sizeof(selfile),
+                               pbRecvBuffer, &dwRecvLength);
+    g_assert_cmpint(status, ==, VREADER_OK);
+    g_assert_cmpint(dwRecvLength, ==, 2);
+    g_assert_cmpint(pbRecvBuffer[0], ==, VCARD7816_SW1_COMMAND_ERROR);
+    g_assert_cmpint(pbRecvBuffer[1], ==, 0x84);
+
+    /* TODO check the iso7816 code handling the remaining SELECT APDUs */
+
+    vreader_free(reader); /* get by id ref */
+}
+
+static void test_invalid_instruction(void)
+{
+    VReader *reader = vreader_get_reader_by_id(0);
+    VReaderStatus status;
+    int dwRecvLength = APDUBufSize;
+    uint8_t pbRecvBuffer[APDUBufSize];
+    uint8_t apdu[] = {
+        0x00, 0xff, 0x00, 0x00, 0x00
+    };
+
+    g_assert_nonnull(reader);
+
+    /* Card Capability Container */
+    select_applet(reader, TEST_CCC);
+
+    /* 0xFF is invalid instruction everywhere, but fails in apdu_ins_to_string() */
+    /*dwRecvLength = APDUBufSize;
+    status = vreader_xfr_bytes(reader,
+                               apdu, sizeof(apdu),
+                               pbRecvBuffer, &dwRecvLength);
+    g_assert_cmpint(status, ==, VREADER_OK);
+    g_assert_cmpint(dwRecvLength, ==, 2);
+    g_assert_cmpint(pbRecvBuffer[0], ==, VCARD7816_SW1_INS_ERROR);
+    g_assert_cmpint(pbRecvBuffer[1], ==, 0x00);*/
+
+    /* CCC Applet does not know GET ACR instruction */
+    apdu[1] = 0x4c;
+    dwRecvLength = APDUBufSize;
+    status = vreader_xfr_bytes(reader,
+                               apdu, sizeof(apdu),
+                               pbRecvBuffer, &dwRecvLength);
+    g_assert_cmpint(status, ==, VREADER_OK);
+    g_assert_cmpint(dwRecvLength, ==, 2);
+    g_assert_cmpint(pbRecvBuffer[0], ==, VCARD7816_SW1_INS_ERROR);
+    g_assert_cmpint(pbRecvBuffer[1], ==, 0x00);
+
+    /* TODO check the iso7816 code handling the remaining SELECT APDUs */
+
+
+    /* PKI Applet */
+    select_applet(reader, TEST_PKI);
+
+    /* Update Buffer is not supported */
+    apdu[1] = 0x58;
+    dwRecvLength = APDUBufSize;
+    status = vreader_xfr_bytes(reader,
+                               apdu, sizeof(apdu),
+                               pbRecvBuffer, &dwRecvLength);
+    g_assert_cmpint(status, ==, VREADER_OK);
+    g_assert_cmpint(dwRecvLength, ==, 2);
+    g_assert_cmpint(pbRecvBuffer[0], ==, VCARD7816_SW1_COMMAND_ERROR);
+    g_assert_cmpint(pbRecvBuffer[1], ==, 0x85);
+
+    vreader_free(reader); /* get by id ref */
+}
+
+static void test_invalid_read_buffer_applet(VReader *reader, int object_type)
+{
+
+    VReaderStatus status;
+    int dwRecvLength = APDUBufSize;
+    uint8_t pbRecvBuffer[APDUBufSize];
+    uint8_t apdu[] = {
+        0x00, 0x52, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00
+    };
+    int apdu_len;
+
+    select_applet(reader, object_type);
+
+    /* Empty body is not accepted */
+    apdu[4] = 0x00;
+    apdu_len = 5;
+    dwRecvLength = APDUBufSize;
+    status = vreader_xfr_bytes(reader,
+                               apdu, apdu_len,
+                               pbRecvBuffer, &dwRecvLength);
+    g_assert_cmpint(status, ==, VREADER_OK);
+    g_assert_cmpint(dwRecvLength, ==, 2);
+    g_assert_cmpint(pbRecvBuffer[0], ==, VCARD7816_SW1_COMMAND_ERROR);
+    g_assert_cmpint(pbRecvBuffer[1], ==, 0x84);
+
+    /* 4B is too much */
+    apdu[4] = 0x04;
+    apdu_len = 9;
+    dwRecvLength = APDUBufSize;
+    status = vreader_xfr_bytes(reader,
+                               apdu, apdu_len,
+                               pbRecvBuffer, &dwRecvLength);
+    g_assert_cmpint(status, ==, VREADER_OK);
+    g_assert_cmpint(dwRecvLength, ==, 2);
+    g_assert_cmpint(pbRecvBuffer[0], ==, VCARD7816_SW1_COMMAND_ERROR);
+    g_assert_cmpint(pbRecvBuffer[1], ==, 0x84);
+
+    /* The first byte is invalid (nor tag, nor value) */
+    apdu[4] = 0x02;
+    apdu[5] = 0x06;
+    apdu_len = 7;
+    dwRecvLength = APDUBufSize;
+    status = vreader_xfr_bytes(reader,
+                               apdu, apdu_len,
+                               pbRecvBuffer, &dwRecvLength);
+    g_assert_cmpint(status, ==, VREADER_OK);
+    g_assert_cmpint(dwRecvLength, ==, 2);
+    g_assert_cmpint(pbRecvBuffer[0], ==, VCARD7816_SW1_COMMAND_ERROR);
+    g_assert_cmpint(pbRecvBuffer[1], ==, 0x84);
+
+    /* Read tag: P1 and P2 defines offset -- overunning the buffer should fail */
+    apdu[2] = 0x08;
+    apdu[3] = 0x08; /* <- Large enough */
+    apdu[5] = 0x01;
+    dwRecvLength = APDUBufSize;
+    status = vreader_xfr_bytes(reader,
+                               apdu, apdu_len,
+                               pbRecvBuffer, &dwRecvLength);
+    g_assert_cmpint(status, ==, VREADER_OK);
+    g_assert_cmpint(dwRecvLength, ==, 2);
+    g_assert_cmpint(pbRecvBuffer[0], ==, VCARD7816_SW1_P1_P2_ERROR);
+    g_assert_cmpint(pbRecvBuffer[1], ==, 0x86);
+
+    /* Read value: P1 and P2 defines offset -- overunning the buffer should fail */
+    apdu[5] = 0x02;
+    dwRecvLength = APDUBufSize;
+    status = vreader_xfr_bytes(reader,
+                               apdu, apdu_len,
+                               pbRecvBuffer, &dwRecvLength);
+    g_assert_cmpint(status, ==, VREADER_OK);
+    g_assert_cmpint(dwRecvLength, ==, 2);
+    g_assert_cmpint(pbRecvBuffer[0], ==, VCARD7816_SW1_P1_P2_ERROR);
+    g_assert_cmpint(pbRecvBuffer[1], ==, 0x86);
+}
+
+static void test_invalid_read_buffer(void)
+{
+    VReader *reader = vreader_get_reader_by_id(0);
+
+    g_assert_nonnull(reader);
+
+    test_invalid_read_buffer_applet(reader, TEST_CCC);
+    test_invalid_read_buffer_applet(reader, TEST_PKI);
+    test_invalid_read_buffer_applet(reader, TEST_PASSTHROUGH);
+    test_invalid_read_buffer_applet(reader, TEST_EMPTY);
+
+    vreader_free(reader); /* get by id ref */
+}
+
+static void test_invalid_acr(void)
+{
+    VReader *reader = vreader_get_reader_by_id(0);
+    VReaderStatus status;
+    int dwRecvLength = APDUBufSize;
+    uint8_t pbRecvBuffer[APDUBufSize];
+    uint8_t apdu[] = {
+        0x00, 0x4c, 0x00, 0x00, 0x00, 0x00, 0x00
+    };
+    size_t apdu_len = 5;
+
+    g_assert_nonnull(reader);
+
+    select_applet(reader, TEST_ACA);
+
+    /* P2 needs to be zero */
+    apdu[3] = 0xff;
+    dwRecvLength = APDUBufSize;
+    status = vreader_xfr_bytes(reader,
+                               apdu, apdu_len,
+                               pbRecvBuffer, &dwRecvLength);
+    g_assert_cmpint(status, ==, VREADER_OK);
+    g_assert_cmpint(dwRecvLength, ==, 2);
+    g_assert_cmpint(pbRecvBuffer[0], ==, VCARD7816_SW1_P1_P2_ERROR);
+    g_assert_cmpint(pbRecvBuffer[1], ==, 0x86);
+    apdu[3] = 0x00;
+
+    /* For P1 = 0x00 we can not send any data */
+    apdu[4] = 0x02;
+    dwRecvLength = APDUBufSize;
+    status = vreader_xfr_bytes(reader,
+                               apdu, sizeof(apdu),
+                               pbRecvBuffer, &dwRecvLength);
+    g_assert_cmpint(status, ==, VREADER_OK);
+    g_assert_cmpint(dwRecvLength, ==, 2);
+    g_assert_cmpint(pbRecvBuffer[0], ==, VCARD7816_SW1_COMMAND_ERROR);
+    g_assert_cmpint(pbRecvBuffer[1], ==, 0x84);
+
+    /* For P1 = 0x01 we need to send exactly one byte */
+    apdu[2] = 0x01;
+    dwRecvLength = APDUBufSize;
+    status = vreader_xfr_bytes(reader,
+                               apdu, sizeof(apdu),
+                               pbRecvBuffer, &dwRecvLength);
+    g_assert_cmpint(status, ==, VREADER_OK);
+    g_assert_cmpint(dwRecvLength, ==, 2);
+    g_assert_cmpint(pbRecvBuffer[0], ==, VCARD7816_SW1_COMMAND_ERROR);
+    g_assert_cmpint(pbRecvBuffer[1], ==, 0x84);
+
+    /* For P1 = 0x10 we can not send any data */
+    apdu[2] = 0x10;
+    apdu[4] = 0x02;
+    dwRecvLength = APDUBufSize;
+    status = vreader_xfr_bytes(reader,
+                               apdu, sizeof(apdu),
+                               pbRecvBuffer, &dwRecvLength);
+    g_assert_cmpint(status, ==, VREADER_OK);
+    g_assert_cmpint(dwRecvLength, ==, 2);
+    g_assert_cmpint(pbRecvBuffer[0], ==, VCARD7816_SW1_COMMAND_ERROR);
+    g_assert_cmpint(pbRecvBuffer[1], ==, 0x84);
+
+    /* For P1 = 0x11 we need to send exactly 7B (2 are not enough) */
+    apdu[2] = 0x11;
+    dwRecvLength = APDUBufSize;
+    status = vreader_xfr_bytes(reader,
+                               apdu, sizeof(apdu),
+                               pbRecvBuffer, &dwRecvLength);
+    g_assert_cmpint(status, ==, VREADER_OK);
+    g_assert_cmpint(dwRecvLength, ==, 2);
+    g_assert_cmpint(pbRecvBuffer[0], ==, VCARD7816_SW1_COMMAND_ERROR);
+    g_assert_cmpint(pbRecvBuffer[1], ==, 0x84);
+
+    /* For P1 = 0x12 we need to send exactly 2B (1 is not enough) */
+    apdu[2] = 0x12;
+    apdu[4] = 0x01;
+    dwRecvLength = APDUBufSize;
+    status = vreader_xfr_bytes(reader,
+                               apdu, 6,
+                               pbRecvBuffer, &dwRecvLength);
+    g_assert_cmpint(status, ==, VREADER_OK);
+    g_assert_cmpint(dwRecvLength, ==, 2);
+    g_assert_cmpint(pbRecvBuffer[0], ==, VCARD7816_SW1_COMMAND_ERROR);
+    g_assert_cmpint(pbRecvBuffer[1], ==, 0x84);
+
+    /* For P1 = 0x20 we can not send any data */
+    apdu[2] = 0x20;
+    dwRecvLength = APDUBufSize;
+    status = vreader_xfr_bytes(reader,
+                               apdu, 6,
+                               pbRecvBuffer, &dwRecvLength);
+    g_assert_cmpint(status, ==, VREADER_OK);
+    g_assert_cmpint(dwRecvLength, ==, 2);
+    g_assert_cmpint(pbRecvBuffer[0], ==, VCARD7816_SW1_COMMAND_ERROR);
+    g_assert_cmpint(pbRecvBuffer[1], ==, 0x84);
+
+    /* For P1 = 0x21 we can not send any data */
+    apdu[2] = 0x21;
+    dwRecvLength = APDUBufSize;
+    status = vreader_xfr_bytes(reader,
+                               apdu, 6,
+                               pbRecvBuffer, &dwRecvLength);
+    g_assert_cmpint(status, ==, VREADER_OK);
+    g_assert_cmpint(dwRecvLength, ==, 2);
+    g_assert_cmpint(pbRecvBuffer[0], ==, VCARD7816_SW1_COMMAND_ERROR);
+    g_assert_cmpint(pbRecvBuffer[1], ==, 0x84);
+
+
+    vreader_free(reader); /* get by id ref */
+}
+
+static void test_passthrough_applet(void)
+{
+    uint8_t person_coid[2] = {0x02, 0x00};
+
+    VReader *reader = vreader_get_reader_by_id(0);
+
+    /* select the passthrough applet */
+    select_applet(reader, TEST_PASSTHROUGH);
+
+    /* get properties */
+    get_properties_coid(reader, person_coid, TEST_GENERIC);
+
+    /* These objects requires a PIN to read the value buffer */
+    do_login(reader);
+
+    /* get the TAG buffer length */
+    read_buffer(reader, CAC_FILE_TAG, TEST_EMPTY_BUFFER);
+
+    /* get the VALUE buffer length */
+    read_buffer(reader, CAC_FILE_VALUE, TEST_EMPTY_BUFFER);
+
+    /* the buffers are empty without physical card */
 
     vreader_free(reader); /* get by id ref */
 }
@@ -669,10 +1099,18 @@ int main(int argc, char *argv[])
     g_test_add_func("/libcacard/cac-ccc", test_cac_ccc);
     g_test_add_func("/libcacard/cac-aca", test_cac_aca);
     g_test_add_func("/libcacard/get-response", test_get_response);
+    g_test_add_func("/libcacard/check-login-count", check_login_count);
     g_test_add_func("/libcacard/login", test_login);
     g_test_add_func("/libcacard/sign", test_sign);
     g_test_add_func("/libcacard/empty-applets", test_empty_applets);
     g_test_add_func("/libcacard/gp-applet", test_gp_applet);
+    g_test_add_func("/libcacard/invalid-properties-apdu", test_invalid_properties);
+    g_test_add_func("/libcacard/invalid-select-apdu", test_invalid_select);
+    g_test_add_func("/libcacard/invalid-instruction", test_invalid_instruction);
+    g_test_add_func("/libcacard/invalid-read-buffer", test_invalid_read_buffer);
+    g_test_add_func("/libcacard/invalid-acr", test_invalid_acr);
+    /* Even without the card, the passthrough applets are present */
+    g_test_add_func("/libcacard/passthrough-applet", test_passthrough_applet);
     g_test_add_func("/libcacard/remove", test_remove);
 
     ret = g_test_run();

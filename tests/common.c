@@ -423,6 +423,13 @@ void select_applet(VReader *reader, int type)
         /* Select first PKI Applet */
         0xa0, 0x00, 0x00, 0x00, 0x79, 0x01, 0x00
     };
+    uint8_t selfile_passthrough[] = {
+        /* Select Person Instance (passthrough) */
+        0xa0, 0x00, 0x00, 0x00, 0x79, 0x02, 0x00
+    };
+    uint8_t selfile_empty[] = {
+        0xA0, 0x00, 0x00, 0x00, 0x79, 0x02, 0xF0
+    };
     uint8_t *aid = NULL;
     size_t aid_len = 0;
 
@@ -442,6 +449,16 @@ void select_applet(VReader *reader, int type)
         aid_len = sizeof(selfile_aca);
         break;
 
+    case TEST_PASSTHROUGH:
+        aid = selfile_passthrough;
+        aid_len = sizeof(selfile_passthrough);
+        break;
+
+    case TEST_EMPTY:
+        aid = selfile_empty;
+        aid_len = sizeof(selfile_empty);
+        break;
+
     default:
         g_assert_not_reached();
     }
@@ -450,7 +467,7 @@ void select_applet(VReader *reader, int type)
     select_aid(reader, aid, aid_len);
 }
 
-void do_sign(VReader *reader)
+void do_sign(VReader *reader, int parts)
 {
     VReaderStatus status;
     int dwRecvLength = APDUBufSize;
@@ -491,6 +508,37 @@ void do_sign(VReader *reader)
         sign_len = 5 + key_bits/8;
     }
 
+    /* The driver supports signatures while data are passed in more separate APDUs */
+    if (parts) {
+        int split = 0x47;
+        /* we have not sent the whole buffer */
+        sign[2] = 0x80;
+        sign[4] = split;
+        sign[5] = 0x00;
+        sign[6] = 0x01;
+        sign[7] = 0xFF;
+        sign[8] = 0xFF;
+        sign_len = 5 + split;
+
+        status = vreader_xfr_bytes(reader,
+                                   sign, sign_len,
+                                   pbRecvBuffer, &dwRecvLength);
+        g_assert_cmpint(status, ==, VREADER_OK);
+        g_assert_cmpint(dwRecvLength, ==, 2);
+        g_assert_cmphex(pbRecvBuffer[dwRecvLength-2], ==, VCARD7816_SW1_SUCCESS);
+        g_assert_cmphex(pbRecvBuffer[dwRecvLength-1], ==, 0x00);
+
+        /* the next message will send the rest of the buffer */
+        sign[2] = 0x00;
+        if (key_bits)
+            sign[4] = key_bits/8 - split;
+        else
+            sign[4] = 256 - split;
+        memmove(&sign[5], &sign[5+2+split], sign[4]);
+        sign_len = 5 + sign[4];
+    }
+
+    dwRecvLength = APDUBufSize;
     status = vreader_xfr_bytes(reader,
                                sign, sign_len,
                                pbRecvBuffer, &dwRecvLength);
@@ -628,6 +676,16 @@ void test_get_response(void)
     /* select CCC */
     select_applet(reader, TEST_CCC);
 
+    /* read buffer without response buffer. Ignore the response. */
+    dwRecvLength = 2;
+    status = vreader_xfr_bytes(reader,
+                               read_buffer, sizeof(read_buffer),
+                               pbRecvBuffer, &dwRecvLength);
+    g_assert_cmpint(status, ==, VREADER_OK);
+    g_assert_cmpint(dwRecvLength, ==, 2);
+    g_assert_cmpint(pbRecvBuffer[0], ==, VCARD7816_SW1_RESPONSE_BYTES);
+    g_assert_cmpint(pbRecvBuffer[1], ==, 0x02);
+
     /* read buffer without response buffer */
     dwRecvLength = 2;
     status = vreader_xfr_bytes(reader,
@@ -673,8 +731,53 @@ void test_get_response(void)
     g_assert_cmphex(pbRecvBuffer[dwRecvLength-2], ==, VCARD7816_SW1_SUCCESS);
     g_assert_cmphex(pbRecvBuffer[dwRecvLength-1], ==, 0x00);
 
+    /* If we ask again, when there is no pending response */
+    dwRecvLength = dwLength + 2;
+    getresp[4] = dwLength;
+    status = vreader_xfr_bytes(reader,
+                               getresp, sizeof(getresp),
+                               pbRecvBuffer, &dwRecvLength);
+    g_assert_cmpint(status, ==, VREADER_OK);
+    g_assert_cmpint(dwRecvLength, ==, 2);
+    g_assert_cmphex(pbRecvBuffer[dwRecvLength-2], ==, VCARD7816_SW1_P1_P2_ERROR);
+    g_assert_cmphex(pbRecvBuffer[dwRecvLength-1], ==, 0x88);
+
     vreader_free(reader); /* get by id ref */
 }
+
+void check_login_count(void)
+{
+    VReader *reader = vreader_get_reader_by_id(0);
+    VReaderStatus status;
+    int dwRecvLength = APDUBufSize;
+    uint8_t pbRecvBuffer[APDUBufSize];
+    uint8_t login[] = {
+        /* VERIFY   [p1,p2=0 ]  [Lc] */
+        0x00, 0x20, 0x00, 0x00, 0x00
+    };
+    g_assert_nonnull(reader);
+
+    /* Get login count */
+    status = vreader_xfr_bytes(reader,
+                               login, sizeof(login),
+                               pbRecvBuffer, &dwRecvLength);
+    g_assert_cmpint(status, ==, VREADER_OK);
+    /* NSS does not know how to do this yet */
+    g_assert_cmphex(pbRecvBuffer[0], ==, VCARD7816_SW1_P1_P2_ERROR);
+    g_assert_cmphex(pbRecvBuffer[1], ==, 0x88);
+
+    /* P1 = 0x01 is invalid */
+    login[2] = 0x01;
+    status = vreader_xfr_bytes(reader,
+                               login, sizeof(login),
+                               pbRecvBuffer, &dwRecvLength);
+    g_assert_cmpint(status, ==, VREADER_OK);
+    g_assert_cmphex(pbRecvBuffer[0], ==, VCARD7816_SW1_P1_P2_ERROR);
+    g_assert_cmphex(pbRecvBuffer[1], ==, 0x00);
+
+    vreader_free(reader);
+}
+
 
 int
 isHWTests(void)

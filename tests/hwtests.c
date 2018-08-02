@@ -124,11 +124,21 @@ static void do_login(VReader *reader)
     uint8_t login[] = {
         /* VERIFY   [p1,p2=0 ]  [Lc]  [pin 77777777 ] */
         0x00, 0x20, 0x00, 0x00, 0x08,
-        0x37, 0x37, 0x37, 0x37, 0x37, 0x37, 0x37, 0x37
+        //0x37, 0x37, 0x37, 0x37, 0x37, 0x37, 0x37, 0x37
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
     };
+    int login_len, pin_len;
+
     g_assert_nonnull(reader);
+
+    /* Set the pin from constant */
+    pin_len = strlen(LOGIN_PIN);
+    login[4] = pin_len;
+    memcpy(&login[5], LOGIN_PIN, pin_len);
+    login_len = 5 + pin_len;
+
     status = vreader_xfr_bytes(reader,
-                               login, sizeof(login),
+                               login, login_len,
                                pbRecvBuffer, &dwRecvLength);
     g_assert_cmpint(status, ==, VREADER_OK);
     g_assert_cmphex(pbRecvBuffer[0], ==, VCARD7816_SW1_SUCCESS);
@@ -229,7 +239,10 @@ static void test_sign(void)
     /* get properties to figure out the key length */
     get_properties(reader, TEST_PKI);
 
-    do_sign(reader);
+    do_sign(reader, 0);
+
+    /* test also multipart signatures */
+    do_sign(reader, 1);
 
     vreader_free(reader); /* get by id ref */
 }
@@ -375,6 +388,7 @@ int main(int argc, char *argv[])
     g_test_add_func("/hw-tests/list", test_list);
     g_test_add_func("/hw-tests/passthrough-applet", test_passthrough_applets);
     g_test_add_func("/hw-tests/login", test_login);
+    g_test_add_func("/hw-tests/check-login-count", check_login_count);
     g_test_add_func("/hw-tests/sign", test_sign);
     g_test_add_func("/hw-tests/sign-bad-data", test_sign_bad_data_x509);
     g_test_add_func("/hw-tests/empty-applets", test_empty_applets_hw);

@@ -22,6 +22,7 @@ enum {
     TEST_GENERIC = 4,
     TEST_EMPTY_BUFFER = 5,
     TEST_EMPTY = 6,
+    TEST_PASSTHROUGH = 7,
 };
 
 void select_coid_good(VReader *reader, unsigned char *coid);
@@ -37,11 +38,13 @@ void get_properties(VReader *reader, int object_type);
 
 void read_buffer(VReader *reader, uint8_t type, int object_type);
 
-void do_sign(VReader *reader);
+void do_sign(VReader *reader, int parts);
 
 void test_empty_applets(void);
 
 void test_get_response(void);
+
+void check_login_count(void);
 
 int isHWTests(void);
 void setHWTests(int);

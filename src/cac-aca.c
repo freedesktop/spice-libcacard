@@ -214,6 +214,7 @@ struct applet_entry {
 };
 struct service_applet_table {
     unsigned num_entries;
+    unsigned num_static_entries;
     struct applet_entry entries[];
 };
 
@@ -285,7 +286,19 @@ struct service_applet_table {
  */
 
 struct service_applet_table service_table = {
-    15, {
+    22, 12, {
+        /* Variable PKI applets entries */
+        {0x61, 7, "\xA0\x00\x00\x00\x79\x01\x00"},
+        {0x62, 7, "\xA0\x00\x00\x00\x79\x01\x01"},
+        {0x63, 7, "\xA0\x00\x00\x00\x79\x01\x02"},
+        {0x64, 7, "\xA0\x00\x00\x00\x79\x01\x03"},
+        {0x65, 7, "\xA0\x00\x00\x00\x79\x01\x04"},
+        {0x66, 7, "\xA0\x00\x00\x00\x79\x01\x05"},
+        {0x67, 7, "\xA0\x00\x00\x00\x79\x01\x06"},
+        {0x68, 7, "\xA0\x00\x00\x00\x79\x01\x07"},
+        {0x69, 7, "\xA0\x00\x00\x00\x79\x01\x08"},
+        {0x6a, 7, "\xA0\x00\x00\x00\x79\x01\x09"},
+        /* static applet entries */
         {0x40, 7, "\xA0\x00\x00\x01\x16\x30\x00"},
         {0x4F, 7, "\xA0\x00\x00\x01\x16\xDB\x00"},
         {0x4B, 7, "\xA0\x00\x00\x00\x79\x02\xFB"},
@@ -294,48 +307,55 @@ struct service_applet_table service_table = {
         {0x4E, 7, "\xA0\x00\x00\x00\x79\x02\xFE"},
         {0x4D, 7, "\xA0\x00\x00\x00\x79\x02\xFD"},
         {0x50, 7, "\xA0\x00\x00\x00\x79\x02\xF2"},
-        {0x63, 7, "\xA0\x00\x00\x00\x79\x01\x02"},
         {0x51, 7, "\xA0\x00\x00\x00\x79\x02\xF0"},
-        {0x61, 7, "\xA0\x00\x00\x00\x79\x01\x00"},
         {0x52, 7, "\xA0\x00\x00\x00\x79\x02\xF1"},
-        {0x62, 7, "\xA0\x00\x00\x00\x79\x01\x01"},
         {0x44, 7, "\xA0\x00\x00\x00\x79\x12\x01"},
         {0x45, 7, "\xA0\x00\x00\x00\x79\x12\x02"},
     }
 };
 
 static struct simpletlv_member *
-cac_aca_get_service_table(size_t *r_len)
+cac_aca_get_service_table(size_t *r_len, unsigned int pki_applets)
 {
     struct simpletlv_member *r = NULL;
-    unsigned char *num_entries = NULL;
+    unsigned char *num_entries_byte = NULL;
     unsigned char *entry = NULL;
-    size_t i = 0;
+    size_t i, j = 0;
+    unsigned int num_entries;
 
     g_assert_nonnull(r_len);
 
-    r = g_malloc(sizeof(struct simpletlv_member)*(service_table.num_entries+1));
+    num_entries = service_table.num_static_entries + pki_applets;
+    r = g_malloc_n(num_entries + 1, sizeof(struct simpletlv_member));
 
-    num_entries = g_malloc(1);
-    *num_entries = service_table.num_entries;
+    num_entries_byte = g_malloc(1);
+    *num_entries_byte = num_entries;
 
     r[0].type = SIMPLETLV_TYPE_LEAF;
     r[0].tag = CAC_ACR_SERVICE_NUM_ENTRIES;
     r[0].length = 1;
-    r[0].value.value = num_entries;
-    for (i = 1; i <= service_table.num_entries; i++) {
-        r[i].type = SIMPLETLV_TYPE_LEAF;
-        r[i].tag = CAC_ACR_SERVICE_ENTRY;
-        r[i].length = service_table.entries[i].applet_aid_len + 3;
-        entry = g_malloc(r[i].length);
+    r[0].value.value = num_entries_byte;
+    j = 1;
+    for (i = 0; i < service_table.num_entries; i++) {
+        /* Skip unused PKI applets */
+        if (i >= pki_applets && i < 10)
+            continue;
+
+        r[j].type = SIMPLETLV_TYPE_LEAF;
+        r[j].tag = CAC_ACR_SERVICE_ENTRY;
+        r[j].length = service_table.entries[i].applet_aid_len + 3;
+        entry = g_malloc(r[j].length);
         entry[0] = service_table.entries[i].applet_id;
         entry[1] = CAC_ACR_AID;
         entry[2] = service_table.entries[i].applet_aid_len;
         memcpy(&entry[3], (unsigned char *) &service_table.entries[i],
             service_table.entries[i].applet_aid_len);
-        r[i].value.value = entry;
+        r[j].value.value = entry;
+        j++;
     }
-    *r_len = service_table.num_entries + 1;
+    g_assert_cmpint(j, ==, num_entries + 1);
+
+    *r_len = j;
     return r;
 }
 
@@ -357,7 +377,6 @@ enum {
 
 #define ACR_MAX_INSTRUCTIONS    5
 #define ACR_MAX_APPLET_OBJECTS  5
-#define ACR_MAX_APPLETS         20
 
 struct cac_ins {
     unsigned char code;
@@ -379,7 +398,8 @@ struct acr_applet {
 };
 struct acr_applets {
     unsigned int num_applets;
-    struct acr_applet applets[ACR_MAX_APPLETS];
+    unsigned int num_static_applets;
+    struct acr_applet applets[];
 };
 
 /* Example:
@@ -422,7 +442,109 @@ struct acr_applets {
  */
 
 struct acr_applets applets_table = {
-    16, {
+    23, 13, {
+        /* Dynamic PKI applets */
+        {0x61, 2, {
+            {"\x01\x00", 3, {
+                {CAC_UPDATE_BUFFER, 0x04, ACR_INS_CONFIG_NONE},
+                {CAC_READ_BUFFER, 0x00, ACR_INS_CONFIG_NONE},
+                {CAC_SIGN_DECRYPT, 0x06, ACR_INS_CONFIG_NONE}
+            }},
+            {"\xFF\xFF", 1, {
+                {VCARD7816_INS_VERIFY, 0x10, ACR_INS_CONFIG_NONE},
+            }}
+        }},
+        {0x62, 2, {
+            {"\x01\x01", 3, {
+                {CAC_UPDATE_BUFFER, 0x04, ACR_INS_CONFIG_NONE},
+                {CAC_READ_BUFFER, 0x00, ACR_INS_CONFIG_NONE},
+                {CAC_SIGN_DECRYPT, 0x06, ACR_INS_CONFIG_NONE}
+            }},
+            {"\xFF\xFF", 1, {
+                {VCARD7816_INS_VERIFY, 0x10, ACR_INS_CONFIG_NONE},
+            }}
+        }},
+        {0x63, 2, {
+            {"\x01\x02", 3, {
+                {CAC_UPDATE_BUFFER, 0x04, ACR_INS_CONFIG_NONE},
+                {CAC_READ_BUFFER, 0x00, ACR_INS_CONFIG_NONE},
+                {CAC_SIGN_DECRYPT, 0x06, ACR_INS_CONFIG_NONE}
+            }},
+            {"\xFF\xFF", 1, {
+                {VCARD7816_INS_VERIFY, 0x10, ACR_INS_CONFIG_NONE},
+            }}
+        }},
+        {0x64, 2, {
+            {"\x01\x03", 3, {
+                {CAC_UPDATE_BUFFER, 0x04, ACR_INS_CONFIG_NONE},
+                {CAC_READ_BUFFER, 0x00, ACR_INS_CONFIG_NONE},
+                {CAC_SIGN_DECRYPT, 0x06, ACR_INS_CONFIG_NONE}
+            }},
+            {"\xFF\xFF", 1, {
+                {VCARD7816_INS_VERIFY, 0x10, ACR_INS_CONFIG_NONE},
+            }}
+        }},
+        {0x65, 2, {
+            {"\x01\x04", 3, {
+                {CAC_UPDATE_BUFFER, 0x04, ACR_INS_CONFIG_NONE},
+                {CAC_READ_BUFFER, 0x00, ACR_INS_CONFIG_NONE},
+                {CAC_SIGN_DECRYPT, 0x06, ACR_INS_CONFIG_NONE}
+            }},
+            {"\xFF\xFF", 1, {
+                {VCARD7816_INS_VERIFY, 0x10, ACR_INS_CONFIG_NONE},
+            }}
+        }},
+        {0x66, 2, {
+            {"\x01\x05", 3, {
+                {CAC_UPDATE_BUFFER, 0x04, ACR_INS_CONFIG_NONE},
+                {CAC_READ_BUFFER, 0x00, ACR_INS_CONFIG_NONE},
+                {CAC_SIGN_DECRYPT, 0x06, ACR_INS_CONFIG_NONE}
+            }},
+            {"\xFF\xFF", 1, {
+                {VCARD7816_INS_VERIFY, 0x10, ACR_INS_CONFIG_NONE},
+            }}
+        }},
+        {0x67, 2, {
+            {"\x01\x06", 3, {
+                {CAC_UPDATE_BUFFER, 0x04, ACR_INS_CONFIG_NONE},
+                {CAC_READ_BUFFER, 0x00, ACR_INS_CONFIG_NONE},
+                {CAC_SIGN_DECRYPT, 0x06, ACR_INS_CONFIG_NONE}
+            }},
+            {"\xFF\xFF", 1, {
+                {VCARD7816_INS_VERIFY, 0x10, ACR_INS_CONFIG_NONE},
+            }}
+        }},
+        {0x68, 2, {
+            {"\x01\x07", 3, {
+                {CAC_UPDATE_BUFFER, 0x04, ACR_INS_CONFIG_NONE},
+                {CAC_READ_BUFFER, 0x00, ACR_INS_CONFIG_NONE},
+                {CAC_SIGN_DECRYPT, 0x06, ACR_INS_CONFIG_NONE}
+            }},
+            {"\xFF\xFF", 1, {
+                {VCARD7816_INS_VERIFY, 0x10, ACR_INS_CONFIG_NONE},
+            }}
+        }},
+        {0x69, 2, {
+            {"\x01\x08", 3, {
+                {CAC_UPDATE_BUFFER, 0x04, ACR_INS_CONFIG_NONE},
+                {CAC_READ_BUFFER, 0x00, ACR_INS_CONFIG_NONE},
+                {CAC_SIGN_DECRYPT, 0x06, ACR_INS_CONFIG_NONE}
+            }},
+            {"\xFF\xFF", 1, {
+                {VCARD7816_INS_VERIFY, 0x10, ACR_INS_CONFIG_NONE},
+            }}
+        }},
+        {0x6a, 2, {
+            {"\x01\x09", 3, {
+                {CAC_UPDATE_BUFFER, 0x04, ACR_INS_CONFIG_NONE},
+                {CAC_READ_BUFFER, 0x00, ACR_INS_CONFIG_NONE},
+                {CAC_SIGN_DECRYPT, 0x06, ACR_INS_CONFIG_NONE}
+            }},
+            {"\xFF\xFF", 1, {
+                {VCARD7816_INS_VERIFY, 0x10, ACR_INS_CONFIG_NONE},
+            }}
+        }},
+        /* Static applets */
         {0x1F, 1, {
             {"\xFF\xFF", 1, {
                 {VCARD7816_INS_VERIFY, 0x00, ACR_INS_CONFIG_NONE}
@@ -532,16 +654,6 @@ struct acr_applets applets_table = {
                 {VCARD7816_INS_VERIFY, 0x10, ACR_INS_CONFIG_NONE},
             }}
         }},
-        {0x63, 2, {
-            {"\x01\x02", 3, {
-                {CAC_UPDATE_BUFFER, 0x04, ACR_INS_CONFIG_NONE},
-                {CAC_READ_BUFFER, 0x00, ACR_INS_CONFIG_NONE},
-                {CAC_SIGN_DECRYPT, 0x06, ACR_INS_CONFIG_NONE}
-            }},
-            {"\xFF\xFF", 1, {
-                {VCARD7816_INS_VERIFY, 0x10, ACR_INS_CONFIG_NONE},
-            }}
-        }},
         {0x51, 1, {
             {"\xFF\xFF", 5, {
                 {CAC_UPDATE_BUFFER, 0x04, ACR_INS_CONFIG_NONE},
@@ -551,32 +663,12 @@ struct acr_applets applets_table = {
                 {VCARD7816_INS_VERIFY, 0x10, ACR_INS_CONFIG_NONE},
             }}
         }},
-        {0x61, 2, {
-            {"\x01\x00", 3, {
-                {CAC_UPDATE_BUFFER, 0x04, ACR_INS_CONFIG_NONE},
-                {CAC_READ_BUFFER, 0x00, ACR_INS_CONFIG_NONE},
-                {CAC_SIGN_DECRYPT, 0x06, ACR_INS_CONFIG_NONE}
-            }},
-            {"\xFF\xFF", 1, {
-                {VCARD7816_INS_VERIFY, 0x10, ACR_INS_CONFIG_NONE},
-            }}
-        }},
         {0x52, 1, {
             {"\xFF\xFF", 5, {
                 {CAC_UPDATE_BUFFER, 0x04, ACR_INS_CONFIG_NONE},
                 {CAC_READ_BUFFER, 0x00, ACR_INS_CONFIG_NONE},
                 {VCARD7816_INS_EXTERNAL_AUTHENTICATE, 0x11, ACR_INS_CONFIG_P1, .p1=0x00},
                 {VCARD7816_INS_GET_CHALLENGE, 0x11, ACR_INS_CONFIG_NONE},
-                {VCARD7816_INS_VERIFY, 0x10, ACR_INS_CONFIG_NONE},
-            }}
-        }},
-        {0x62, 2, {
-            {"\x01\x01", 3, {
-                {CAC_UPDATE_BUFFER, 0x04, ACR_INS_CONFIG_NONE},
-                {CAC_READ_BUFFER, 0x00, ACR_INS_CONFIG_NONE},
-                {CAC_SIGN_DECRYPT, 0x06, ACR_INS_CONFIG_NONE}
-            }},
-            {"\xFF\xFF", 1, {
                 {VCARD7816_INS_VERIFY, 0x10, ACR_INS_CONFIG_NONE},
             }}
         }},
@@ -704,7 +796,7 @@ failure:
 }
 
 static struct simpletlv_member *
-cac_aca_get_applet_acr_coid(unsigned char *coid)
+cac_aca_get_applet_acr_coid(unsigned int pki_applets, unsigned char *coid)
 {
     struct simpletlv_member *r = NULL;
     size_t i, j;
@@ -712,6 +804,10 @@ cac_aca_get_applet_acr_coid(unsigned char *coid)
     r = g_malloc(sizeof(struct simpletlv_member));
 
     for (i = 0; i <= applets_table.num_applets; i++) {
+        /* Skip unused PKI applets */
+        if (i >= pki_applets && i < 10)
+            continue;
+
         for (j = 0; j < applets_table.applets[i].num_objects; j++) {
             if (memcmp(&applets_table.applets[i].objects[j].id, coid, 2) == 0) {
                 unsigned int buffer_len = ACR_MAX_INSTRUCTIONS * 6 + 2;
@@ -738,11 +834,12 @@ cac_aca_get_applet_acr_coid(unsigned char *coid)
 }
 
 static unsigned char
-aid_to_applet_id(unsigned char *aid, unsigned int aid_len)
+aid_to_applet_id(unsigned int pki_applets, unsigned char *aid, unsigned int aid_len)
 {
     unsigned int i;
     for (i = 0; i < service_table.num_entries; i++) {
-        if (aid_len == service_table.entries[i].applet_aid_len
+        if ((i < pki_applets || i >= 10)
+            && aid_len == service_table.entries[i].applet_aid_len
             && memcmp(aid, service_table.entries[i].applet_aid, aid_len) == 0)
             return service_table.entries[i].applet_id;
     }
@@ -750,37 +847,43 @@ aid_to_applet_id(unsigned char *aid, unsigned int aid_len)
 }
 
 static struct simpletlv_member *
-cac_aca_get_applet_acr(size_t *acr_len, unsigned char *aid,
+cac_aca_get_applet_acr(unsigned int pki_applets, size_t *acr_len, unsigned char *aid,
                        unsigned int aid_len)
 {
     struct simpletlv_member *r = NULL;
-    unsigned char *num_applets = NULL;
+    unsigned char *num_applets_byte = NULL;
     size_t i, j = 0;
     unsigned char applet_id = 0;
+    unsigned int num_applets = applets_table.num_static_applets + pki_applets;
 
     g_assert_nonnull(acr_len);
 
     if (aid != NULL && aid_len != 0) {
         /* We are selecting only one applet*/
-        applet_id = aid_to_applet_id(aid, aid_len);
+        applet_id = aid_to_applet_id(pki_applets, aid, aid_len);
         if (applet_id == 0)
             return NULL;
+
         r = g_malloc(sizeof(struct simpletlv_member));
     } else {
-        r = g_malloc(sizeof(struct simpletlv_member)*(applets_table.num_applets+1));
+        r = g_malloc_n(num_applets + 1, sizeof(struct simpletlv_member));
     }
 
     if (!applet_id) {
-        num_applets = g_malloc(1);
-        *num_applets = applets_table.num_applets;
+        num_applets_byte = g_malloc(1);
+        *num_applets_byte = num_applets;
 
         r[j].tag = CAC_ACR_NUM_APPLETS;
         r[j].length = 1;
-        r[j].value.value = num_applets;
+        r[j].value.value = num_applets_byte;
         r[j].type = SIMPLETLV_TYPE_LEAF;
         j++;
     }
     for (i = 0; i < applets_table.num_applets; i++) {
+        /* Skip unused PKI applets */
+        if (i >= pki_applets && i < 10)
+            continue;
+
         if (applet_id && applet_id != applets_table.applets[i].id)
             continue;
 
@@ -791,12 +894,13 @@ cac_aca_get_applet_acr(size_t *acr_len, unsigned char *aid,
             goto failure;
         j++;
     }
+
     *acr_len = j;
     return r;
 
 failure:
     simpletlv_free(r, j);
-    g_free(num_applets);
+    g_free(num_applets_byte);
     return NULL;
 }
 
@@ -955,7 +1059,7 @@ failure:
 }
 
 VCardResponse *
-cac_aca_get_applet_acr_response(VCard *card, int Le,
+cac_aca_get_applet_acr_response(VCard *card, int Le, unsigned int pki_applets,
                                 unsigned char *aid, unsigned int aid_len,
                                 unsigned char *coid)
 {
@@ -963,7 +1067,7 @@ cac_aca_get_applet_acr_response(VCard *card, int Le,
     unsigned char *acr_buffer = NULL;
     size_t properties_len;
     const struct simpletlv_member *properties;
-    size_t acr_len;
+    size_t acr_len = 0;
     struct simpletlv_member *acr = NULL;
     size_t list_len;
     struct simpletlv_member *list = NULL;
@@ -976,7 +1080,7 @@ cac_aca_get_applet_acr_response(VCard *card, int Le,
 
         /* getting the table for COID (2B) */
         acr_len = 1; // returns exactly one element if found
-        acr = cac_aca_get_applet_acr_coid(coid);
+        acr = cac_aca_get_applet_acr_coid(pki_applets, coid);
         if (!acr) {
             /* did not find the COID */
             r = vcard_make_response(VCARD7816_STATUS_ERROR_WRONG_PARAMETERS_IN_DATA);
@@ -984,7 +1088,7 @@ cac_aca_get_applet_acr_response(VCard *card, int Le,
         }
     } else {
         /* getting the table for AID or the whole */
-        acr = cac_aca_get_applet_acr(&acr_len, aid, aid_len);
+        acr = cac_aca_get_applet_acr(pki_applets, &acr_len, aid, aid_len);
         if (!acr && aid_len > 0) {
             /* did not find the AID */
             r = vcard_make_response(VCARD7816_STATUS_ERROR_DATA_NOT_FOUND);
@@ -1026,7 +1130,7 @@ cac_aca_get_amp_response(VCard *card, int Le)
     unsigned char *amp_buffer = NULL;
     size_t properties_len;
     const struct simpletlv_member *properties;
-    size_t amp_len;
+    size_t amp_len = 0;
     struct simpletlv_member *amp = NULL;
     size_t list_len;
     struct simpletlv_member *list = NULL;
@@ -1062,13 +1166,13 @@ failure:
 }
 
 VCardResponse *
-cac_aca_get_service_response(VCard *card, int Le)
+cac_aca_get_service_response(VCard *card, int Le, unsigned int pki_applets)
 {
     size_t service_buffer_len;
     unsigned char *service_buffer = NULL;
     size_t properties_len;
     const struct simpletlv_member *properties;
-    size_t service_len;
+    size_t service_len = 0;
     struct simpletlv_member *service = NULL;
     size_t list_len;
     struct simpletlv_member *list = NULL;
@@ -1076,7 +1180,7 @@ cac_aca_get_service_response(VCard *card, int Le)
 
     /* Prepare the SimpleTLV structures */
     properties = cac_aca_get_properties(&properties_len);
-    service = cac_aca_get_service_table(&service_len);
+    service = cac_aca_get_service_table(&service_len, pki_applets);
     if (service == NULL)
         goto failure;
 

@@ -22,11 +22,11 @@ VCardResponse *
 cac_aca_get_acr_response(VCard *card, int Le, unsigned char *acrid);
 
 VCardResponse *
-cac_aca_get_applet_acr_response(VCard *card, int Le,
+cac_aca_get_applet_acr_response(VCard *card, int Le, unsigned int pki_applets,
                                 unsigned char *aid, unsigned int aid_len,
                                 unsigned char *coid);
 VCardResponse *
 cac_aca_get_amp_response(VCard *card, int Le);
 
 VCardResponse *
-cac_aca_get_service_response(VCard *card, int Le);
+cac_aca_get_service_response(VCard *card, int Le, unsigned int pki_applets);

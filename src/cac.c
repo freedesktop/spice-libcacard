@@ -40,6 +40,7 @@ typedef struct CACCCCAppletDataStruct {
 
 /* private data for ACA container */
 typedef struct CACACAAppletDataStruct {
+    unsigned int pki_applets;
     /* At the moment mostly in cac-aca.c */
 } CACACAAppletData;
 
@@ -474,10 +475,12 @@ cac_applet_aca_process_apdu(VCard *card, VCardAPDU *apdu,
                             VCardResponse **response)
 {
     VCardStatus ret = VCARD_FAIL;
+    CACACAAppletData *aca_applet;
     VCardAppletPrivate *applet_private;
 
     applet_private = vcard_get_current_applet_private(card, apdu->a_channel);
     assert(applet_private);
+    aca_applet = &(applet_private->u.aca_data);
 
     switch (apdu->a_ins) {
     case CAC_GET_ACR:
@@ -519,7 +522,7 @@ cac_applet_aca_process_apdu(VCard *card, VCardAPDU *apdu,
                 break;
             }
             *response = cac_aca_get_applet_acr_response(card, apdu->a_Le,
-                NULL, 0, NULL);
+                aca_applet->pki_applets, NULL, 0, NULL);
             break;
 
         case 0x11:
@@ -531,7 +534,7 @@ cac_applet_aca_process_apdu(VCard *card, VCardAPDU *apdu,
                 break;
             }
             *response = cac_aca_get_applet_acr_response(card, apdu->a_Le,
-                apdu->a_body, apdu->a_Lc, NULL);
+                aca_applet->pki_applets, apdu->a_body, apdu->a_Lc, NULL);
             break;
 
         case 0x12:
@@ -543,7 +546,7 @@ cac_applet_aca_process_apdu(VCard *card, VCardAPDU *apdu,
                 break;
             }
             *response = cac_aca_get_applet_acr_response(card, apdu->a_Le,
-                NULL, 0, apdu->a_body);
+                aca_applet->pki_applets, NULL, 0, apdu->a_body);
             break;
 
         case 0x20:
@@ -562,7 +565,8 @@ cac_applet_aca_process_apdu(VCard *card, VCardAPDU *apdu,
                             VCARD7816_STATUS_ERROR_DATA_INVALID);
                 break;
             }
-            *response = cac_aca_get_service_response(card, apdu->a_Le);
+            *response = cac_aca_get_service_response(card, apdu->a_Le,
+                aca_applet->pki_applets);
             break;
         default:
             *response = vcard_make_response(
@@ -1240,7 +1244,7 @@ cac_new_ccc_applet_private(int cert_count)
     buffer[2].value.value = cg_version;
     buffer[3].value.value = cardurl[0]; /* ACA */
 
-    if (cert_count > 13) {
+    if (cert_count > 10) {
         // XXX too many objects for now
         g_debug("Too many PKI objects");
         return NULL;
@@ -1396,8 +1400,9 @@ failure:
 }
 
 static VCardAppletPrivate *
-cac_new_aca_applet_private(void)
+cac_new_aca_applet_private(int cert_count)
 {
+    CACACAAppletData *aca_applet_data;
     VCardAppletPrivate *applet_private;
 
     /* ACA applet Properties ex.:
@@ -1417,12 +1422,15 @@ cac_new_aca_applet_private(void)
 
     /* Create the private data structure */
     applet_private = g_new0(VCardAppletPrivate, 1);
+    aca_applet_data = &(applet_private->u.aca_data);
     if (applet_private == NULL)
         goto failure;
 
     /* Link the properties */
     applet_private->properties = properties;
     applet_private->properties_len = 1;
+
+    aca_applet_data->pki_applets = cert_count;
 
     return applet_private;
 
@@ -1438,12 +1446,12 @@ failure:
  * create a new ACA applet
  */
 static VCardApplet *
-cac_new_aca_applet(void)
+cac_new_aca_applet(int cert_count)
 {
     VCardAppletPrivate *applet_private;
     VCardApplet *applet;
 
-    applet_private = cac_new_aca_applet_private();
+    applet_private = cac_new_aca_applet_private(cert_count);
     if (applet_private == NULL) {
         goto failure;
     }
@@ -1521,6 +1529,11 @@ cac_card_init(VReader *reader, VCard *card,
     /* CAC Cards are VM Cards */
     vcard_set_type(card, VCARD_VM);
 
+    if (cert_count > 10) {
+        g_debug("Too many PKI objects");
+        goto failure;
+    }
+
     /* create one PKI applet for each cert */
     for (i = 0; i < cert_count; i++) {
         applet = cac_new_pki_applet(i, cert[i], cert_len[i], key[i]);
@@ -1531,7 +1544,7 @@ cac_card_init(VReader *reader, VCard *card,
     }
 
     /* create a ACA applet, to list access rules */
-    applet = cac_new_aca_applet();
+    applet = cac_new_aca_applet(cert_count);
     if (applet == NULL) {
         goto failure;
     }

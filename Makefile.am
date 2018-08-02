@@ -77,7 +77,11 @@ test_programs =					\
 	tests/simpletlv				\
 	$(NULL)
 
-tests_libcacard_LDADD = libcacard.la
+tests_libcacard_LDADD =				\
+	libcacard.la				\
+	src/common.lo				\
+	src/simpletlv.lo			\
+	$(NULL)
 
 tests_simpletlv_LDADD =				\
 	libcacard.la				\

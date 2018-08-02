@@ -159,6 +159,10 @@ static void get_properties(VReader *reader, int object_type)
         /* Get properties */
         0x80, 0x56, 0x01, 0x00, 0x00
     };
+    uint8_t get_properties_tag[] = {
+        /* Get properties             [tag list] */
+        0x80, 0x56, 0x02, 0x00, 0x02, 0x01, 0x01, 0x00
+    };
     int verified_pki_properties = 0;
     int num_objects = 0, num_objects_expected = -1;
 
@@ -275,6 +279,26 @@ static void get_properties(VReader *reader, int object_type)
     if (object_type == TEST_PKI) {
         g_assert_cmpint(verified_pki_properties, ==, 1);
     }
+
+    dwRecvLength = APDUBufSize;
+    status = vreader_xfr_bytes(reader,
+                               get_properties_tag, sizeof(get_properties_tag),
+                               pbRecvBuffer, &dwRecvLength);
+    g_assert_cmpint(status, ==, VREADER_OK);
+    g_assert_cmpint(dwRecvLength, ==, 2);
+    g_assert_cmpint(pbRecvBuffer[0], ==, VCARD7816_SW1_LE_ERROR);
+    g_assert_cmpint(pbRecvBuffer[1], ==, 0x0e); /* Two applet information buffers */
+
+    /* Update the APDU to match Le field from response and resend */
+    get_properties_tag[7] = pbRecvBuffer[1];
+    dwRecvLength = APDUBufSize;
+    status = vreader_xfr_bytes(reader,
+                               get_properties_tag, sizeof(get_properties_tag),
+                               pbRecvBuffer, &dwRecvLength);
+    g_assert_cmpint(status, ==, VREADER_OK);
+    g_assert_cmpint(dwRecvLength, ==, 16); /* Two applet information buffers + status */
+    g_assert_cmpint(pbRecvBuffer[dwRecvLength-2], ==, VCARD7816_SW1_SUCCESS);
+    g_assert_cmpint(pbRecvBuffer[dwRecvLength-1], ==, 0x00);
 }
 
 static void get_acr(VReader *reader)

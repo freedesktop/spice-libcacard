@@ -27,6 +27,8 @@ enum {
 void select_coid_good(VReader *reader, unsigned char *coid);
 void select_coid_bad(VReader *reader, unsigned char *coid);
 
+int select_aid_response(VReader *reader, unsigned char *aid,
+                        unsigned int aid_len, int response);
 void select_aid(VReader *reader, unsigned char *aid, unsigned int aid_len);
 void select_applet(VReader *reader, int type);
 

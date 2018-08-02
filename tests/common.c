@@ -57,7 +57,8 @@ void select_coid_bad(VReader *reader, unsigned char *coid)
 }
 
 
-void select_aid(VReader *reader, unsigned char *aid, unsigned int aid_len)
+int select_aid_response(VReader *reader, unsigned char *aid,
+                        unsigned int aid_len, int response_len)
 {
     VReaderStatus status;
     int dwRecvLength = APDUBufSize;
@@ -77,8 +78,21 @@ void select_aid(VReader *reader, unsigned char *aid, unsigned int aid_len)
                                selfile, selfile_len,
                                pbRecvBuffer, &dwRecvLength);
     g_assert_cmpint(status, ==, VREADER_OK);
-    g_assert_cmphex(pbRecvBuffer[dwRecvLength-2], ==, VCARD7816_SW1_RESPONSE_BYTES);
-    g_assert_cmphex(pbRecvBuffer[dwRecvLength-1], >, 0);
+    if (response_len > 0) {
+        /* we expect specific amount of response bytes */
+        g_assert_cmphex(pbRecvBuffer[dwRecvLength-2], ==, VCARD7816_SW1_RESPONSE_BYTES);
+        g_assert_cmphex(pbRecvBuffer[dwRecvLength-1], ==, response_len);
+    } else {
+        /* the default response length is 13 (FCI stub) */
+        g_assert_cmphex(pbRecvBuffer[dwRecvLength-2], ==, VCARD7816_SW1_RESPONSE_BYTES);
+        g_assert_cmphex(pbRecvBuffer[dwRecvLength-1], ==, 0x0d);
+    }
+    return pbRecvBuffer[dwRecvLength-2];
+}
+
+void select_aid(VReader *reader, unsigned char *aid, unsigned int aid_len)
+{
+    (void) select_aid_response(reader, aid, aid_len, 0);
 }
 
 void get_properties_coid(VReader *reader, const unsigned char coid[2],

@@ -44,4 +44,6 @@ void test_get_response(void);
 int isHWTests(void);
 void setHWTests(int);
 
+int getBits(void);
+
 #endif /* _TESTS_COMMON */

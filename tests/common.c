@@ -633,5 +633,11 @@ setHWTests(int new_value)
     hw_tests = new_value;
 }
 
+int
+getBits(void)
+{
+    return key_bits;
+}
+
 
 /* vim: set ts=4 sw=4 tw=0 noet expandtab: */

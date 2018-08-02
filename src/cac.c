@@ -774,6 +774,321 @@ failure:
     return NULL;
 }
 
+/*
+ * Other applets breakdown:
+ *
+ * A00000007902FB: ??? (generic container ??)
+ * $ opensc-tool -s 00A4040007A00000007902FB -s 8056010000
+ * PROPERTIES:
+ * 01 05
+ *  10 02 06 01 00
+ * 40 01
+ *  01
+ * 50 0B
+ *  41 02
+ *   02 FB
+ *  42 05
+ *   01  <-- Inidicates that this is not SimpleTLV ?
+ *   62 00 60 01
+ * $ opensc-tool -s 00A4040007A00000007902FB -s 8052000002010202
+ * $ opensc-tool -s 00A4040007A00000007902FB -s 8052000002020202
+ * TAG, VALUE BUFFER:
+ * empty
+ *
+ * A00000007902FE: PKI Certificate
+ * $ opensc-tool -s 00A4040007A00000007902FE -s 8056010000
+ * PROPERTIES:
+ * 01 05
+ *  10 02 06 02 03
+ * 40 01
+ *  01
+ * 50 0B
+ *  41 02
+ *   02 FE
+ *  42 05
+ *   01  <-- Indicates that this is not SimpleTLV, but what?
+ *   B2 00 30 02
+ * $ opensc-tool -s 00A4040007A00000007902FE -s 8052000002010202
+ * $ opensc-tool -s 00A4040007A00000007902FE -s 8052000002020202
+ * TAG BUFFER:
+ * 36 00   <-- length
+ * 00 00 14 01 DC 0B 00 00 14 01 DD 03 00 00 14 01 72 29
+ * 01 00 14 01 DC 0B 01 00 14 01 DD 03 01 00 14 01 72 29
+ * 02 00 14 01 DC 0B 02 00 14 01 DD 03 02 00 14 01 72 29
+ * [ID?][same]       [ID?][same]       [ID?][same]
+ *
+ * VALUE BUFFER:
+ * A5 00
+ * 00 C8 C8 CE          <-- same
+ * A0 00 00 00 79 01 00 <-- PKI Applet AID
+ * 00 01 00             <-- OID ???
+ * 00 01 01             <-- same
+ * 7B 62 30 37 39 32 32 64 61 2D 35 30 30 30 2D 31
+ * 30 37 39 2D 39 32 64 39 2D 39 38 35 30 36 62 65
+ * 30 30 30 30 30 7D    <-- MSCUID ???
+ *
+ * 00 C8 C8 CE
+ * A0 00 00 00 79 01 01
+ * 00 01 01
+ * 00 01 01
+ * 7B 63 35 36 33 65 35 31 38 2D 34 32 63 31 2D 31
+ * 35 36 33 2D 39 32 64 62 2D 39 38 35 30 36 62 65
+ * 30 30 30 30 30 7D
+ *
+ * 00 C8 C8 CE
+ * A0 00 00 00 79 01 02
+ * 00 01 02
+ * 00 01 01
+ * 7B 64 37 62 33 63 38 63 38 2D 31 32 63 38 2D 31
+ * 37 62 33 2D 39 32 64 64 2D 39 38 35 30 36 62 65
+ * 30 30 30 30 30 7D
+ *
+ * Read from OpenSC PKCS#11:
+ * XXX TODO OpenSC criples the data while attempting to parse it as a SimpleTLV buffers
+ * 1401 << TL
+ * 00 << V
+ * DC0B << TL
+ * C8 << V
+ * C8CE << TL
+ * A000000079010000140101DD03000001
+ * 14010172297B62303739323264612D35
+ * 3030302D313037392D393264392D3938
+ * 353036626530303030307D00C8C80100
+ * 1401CEDC0BA000000079010100010100
+ * 0100140101DD03017B63010014013572
+ * 293633653531382D343263312D313536
+ * 332D393264622D393835303662653030
+ * 3030307D00C8C8CEA0000200140100DC
+ * 0B007901020001020001017B02001401
+ * 64DD0337623302001401630000000000
+ * 00000000000000000000000000000000
+ * 00000000000000000000000000000000
+ * 000000 << V
+ *
+ *
+ * A00000007902FD: PKI Credential
+ * $ opensc-tool -s 00A4040007A00000007902FD -s 8056010000
+ * PROPERTIES:
+ * 01 05
+ *  10 02 06 02 03
+ * 40 01
+ *  01
+ * 50 0B
+ *  41 02
+ *   02 FD
+ *  42 05
+ *   01  <-- Inidicates that this is not SimpleTLV ?
+ *   B2 00 58 07
+ * $ opensc-tool -s 00A4040007A00000007902FD -s 8052000002010202
+ * $ opensc-tool -s 00A4040007A00000007902FD -s00200000083737373737373737 -s 8052000002020202
+ * TAG BUFFER:
+ * 12 00
+ * 00 00 14 01 64 A5
+ * 01 00 14 01 64 A5
+ * 02 00 14 01 64 B9
+ *
+ * VALUE BUFFER (after login):
+ * 03 02
+ * 00 02 01 00 00 14 00 00 00 CF 12 87 F7 D0 6B 10
+ * 09 EF D5 A7 01 50 48 0D 44 60 7A 2E EC 20 01 00
+ * 00 80 00 00 00 A9 A3 31 FA 76 D2 19 03 89 B8 6A
+ * 7F 3C 06 EE DC 50 44 18 79 F1 F6 8B B1 A3 29 E8
+ * 71 7A 39 4D 25 F6 0D 97 15 C6 D9 A3 34 AC E3 6B
+ * 36 F6 F9 50 0C A9 ED 99 8B A9 0A EF EC 47 0B 46
+ * 17 FE 4E 71 08 57 88 5D 76 F1 42 8F B9 77 43 2F
+ * C7 80 AC F6 57 58 CB 1F 6F 3A 72 A3 8C 8A E2 8E
+ * 63 5B C6 65 5F 37 9A 75 18 39 3B 32 35 A0 19 6E
+ * 95 1D 86 A8 C4 AF E9 FC 0F 89 5D B0 98 EF C7 57
+ * A5 8E A6 A7 39
+ * 00 02 01 00 00 14 00 00 00 17 61 A8 36 F7 6D C8
+ * 91 2D 8B 45 95 02 D7 8F E0 5C 5B A3 2A 20 01 00
+ * 00 80 00 00 00 BF 8C CB 0B D0 9E 6A 70 18 45 1B
+ * A8 2D B5 09 17 8B 1F AF 73 75 23 7B 33 A0 6D 5A
+ * 8D 50 38 E8 1E 7B 5D 27 BD 72 A7 9A 60 BD F6 07
+ * 19 C2 92 7A 64 F1 EF A6 AC AD 1A 12 6F 46 94 DA
+ * D9 C4 BC B0 23 31 BC 29 88 19 3C E3 8F DB F2 64
+ * 41 F2 B0 79 7B CC B1 AC E3 26 1D E3 7C 8C 3C 29
+ * DD B2 41 58 F6 35 47 46 AE A8 D0 F2 AA 5F 7B 89
+ * B5 D8 53 1C 5F FC EE 41 C8 5B B2 C6 64 33 63 30
+ * F1 70 FA D4 C9
+ * 00 02 01 00 00 28 00 00 00 37 36 30 33 31 37 43
+ * 37 32 37 38 41 33 33 32 36 31 45 41 42 45 44 31
+ * 34 44 39 37 31 42 37 34 46 32 31 46 45 43 45 45
+ * 37 20 01 00 00 80 00 00 00 C6 18 34 B8 64 DF BF
+ * 07 1D 1A 3C A2 81 2D 6E 63 FA 60 C2 D6 9F 28 8B
+ * D8 FD 2B B4 E7 03 E2 75 D3 81 DB 24 A7 D5 14 D5
+ * B6 C2 65 9F 14 40 A5 78 DB 15 79 A4 69 22 6F 9A
+ * 83 A8 FC BF 39 D0 89 B5 21 1B 11 D7 31 2E 4C E9
+ * B2 03 F8 74 3B EC B1 E1 6E 89 7D C1 32 82 16 B0
+ * 53 36 90 B0 79 BF 4C F5 3E E1 9D 54 A9 AD 8B F5
+ * 01 F1 39 55 D8 F3 AC 47 9A 7F 73 3D 3E C0 AE 65
+ * F3 2B 60 F3 07 06 3D 61 5B
+ *
+ *
+ * A0000000790200: Person Instance (D.1 CAC Data Model Specific)
+ * $ opensc-tool -s 00A4040007A0000000790200 -s 8056010000
+ * PROPERTIES:
+ * 01 05
+ *  10 02 06 02 03
+ * 40 01
+ *  01
+ * 50 0B
+ *  41 02
+ *   02 00
+ *  42 05
+ *   00 42 00 42 01
+ * $ opensc-tool -s 00A4040007A0000000790200 -s 8052000002010202
+ * $ opensc-tool -s 00A4040007A0000000790200 -s 8052000002020202
+ * TAG BUFFER:
+ * 20 00
+ * 01 05
+ * 02 00
+ * 03 06
+ * 04 00
+ * 05 09
+ * 06 08
+ * 07 01
+ * 08 01
+ * 11 01
+ * 17 0A
+ * 18 01
+ * 62 08
+ * 65 08
+ * 63 08
+ * 66 08
+ * 67 01
+ * VALUE BUFFER:
+ * 4B 00
+ * 4D 61 72 69 65               Person First Name
+ * 54 75 72 6E 65 72            Person Last Name
+ * 38 37 36 30 32 30 30 33 35   Person Identifier
+ * 31 39 37 30 30 34 30 32      Date of Birth
+ * 46                           Sex Category Code
+ * 54                           Person Identifier Type Code
+ * 39                           Blood Type Code
+ * 31 30 30 31 32 37 37 33 39 38  DoD EDI Person Identifier
+ * 5A                           Organ Donor
+ * 32 30 30 39 30 34 30 32      Identification Card Issue Date
+ * 32 30 30 39 30 34 30 32      Date Demographic Data was Loaded on
+ * 32 30 31 32 30 34 30 31      Identification Card Expiration Date
+ * 32 30 31 32 30 34 30 31      Date Demographic Data on Chip Expires
+ * 55                           Card Instance Identifier
+ *
+ * For real cards, we could try to proxy this from original card,
+ * OpenSC exposes this as a data object as SimpleLTV merged in one buffer
+ * $ pkcs11-tool --login --read-object --application-label 'Person Instance' --type data
+ * 01 05
+ *  4d 61 72 69 65
+ * 02 00
+ * 03 06
+ *  54 75 72 6e 65 72
+ * 04 00
+ * 05 09
+ *  38 37 36 30 32 30 30 33 35
+ * 06 08
+ *  31 39 37 30 30 34 30 32
+ * 07 01
+ *  46
+ * 08 01
+ *  54
+ * 11 01
+ *  39
+ * 17 0a
+ *  31 30 30 31 32 37 37 33 39 38
+ * 18 01
+ *  5a
+ * 62 08
+ *  32 30 30 39 30 34 30 32
+ * 65 08
+ *  32 30 30 39 30 34 30 32
+ * 63 08
+ *  32 30 31 32 30 34 30 31
+ * 66 08
+ *  32 30 31 32 30 34 30 31
+ * 2e 31 30 <-- this is also broken in OpenSC
+ * should be
+ * 67 01 55
+ *
+ *
+ * A0000000790201: Personnel (D.1 CAC Data Model Specific)
+ * $ opensc-tool -s 00A4040007A0000000790201 -s 8056010000
+ * PROPERTIES:
+ * 01 05
+ *  10 02 06 02 03
+ * 40 01
+ *  01
+ * 50 0B
+ *  41 02
+ *   02 01
+ *  42 05
+ *   00 22 00 62 00
+ *
+ * $ opensc-tool -s 00A4040007A0000000790201 -s 8052000002010202
+ * $ opensc-tool -s 00A4040007A0000000790201 -s 8052000002020202
+ * TAG BUFFER:
+ * 16 00
+ * 19 00
+ * 20 00
+ * 35 00
+ * 24 01
+ * 25 02
+ * 26 04
+ * 34 01
+ * 36 02
+ * D3 02
+ * D4 00
+ * D5 00
+ * VALUE BUFFER:
+ * 0C 00
+ * 4E           Branch of Service Code
+ * 30 31        Pay Grade Code
+ * 57 4F 2D 31  Rank Code
+ * 41           Personnel Category Code
+ * 4D 57        Pay Plan Code
+ * 30 30        Personnel Entitlement Condition Code
+ * TODO For real cards, we could try to proxy this from original card,
+ * OpenSC exposes this as a data object as SimpleLTV merged in one buffer
+ *
+ *
+ * A0000001166010: Not actually an applet
+ * A0000001166030: Not actually an applet
+ *
+ *
+ * A0000000791201: Empty
+ * $ opensc-tool -s 00A4040007A0000000791201 -s 8056010000
+ * PROPERTIES:
+ * 01 05
+ *  10 02 06 02 03
+ * 40 01
+ *  01
+ * 50 0B
+ *  41 02
+ *   12 01
+ *  42 05
+ *   00 42 02 C0 05
+ * $ opensc-tool -s 00A4040007A0000000791201 -s 8052000002010202
+ * $ opensc-tool -s 00A4040007A0000000791201 -s 8052000002020202
+ * TAG, VALUE BUFFERS:
+ * empty
+ *
+ * A0000000791202: Empty
+ * $ opensc-tool -s 00A4040007A0000000791202 -s 8056010000
+ * PROPERTIES:
+ * 01 05
+ *  10 02 06 02 03
+ * 40 01
+ *  01
+ * 50 0B
+ *  41 02
+ *   12 02
+ *  42 05
+ *   00 42 01 40 06
+ * $ opensc-tool -s 00A4040007A0000000791202 -s 8052000002010202
+ * $ opensc-tool -s 00A4040007A0000000791202 -s 8052000002020202
+ * TAG, VALUE BUFFERS:
+ * empty
+ */
+
 
 static VCardAppletPrivate *
 cac_new_ccc_applet_private(int cert_count)

@@ -17,7 +17,8 @@ events_thread(gpointer arg)
 
     while (1) {
         event = vevent_wait_next_vevent();
-        if (event == NULL) {
+        if (event->type == VEVENT_LAST) {
+            vevent_delete(event);
             break;
         }
         reader_id = vreader_get_id(event->reader);
@@ -88,6 +89,7 @@ static void test_list(void)
         if (vreader_card_is_present(r) == VREADER_OK) {
             cards++;
         }
+        vreader_free(r);
     }
     g_assert_cmpint(cards, ==, 1);
     vreader_list_delete(list);
@@ -206,10 +208,25 @@ static void test_remove(void)
     status = vreader_remove_reader(reader);
     g_assert_cmpint(status, ==, VREADER_OK);
     vreader_free(reader); /* get by id ref */
-    vreader_free(reader);
 
     reader = vreader_get_reader_by_id(0);
     g_assert_null(reader);
+}
+
+
+static void libcacard_finalize(void)
+{
+    VReader *reader = vreader_get_reader_by_id(0);
+
+    /* This probably supposed to be a event that terminates the loop */
+    vevent_queue_vevent(vevent_new(VEVENT_LAST, reader, NULL));
+
+    /* join */
+    g_thread_join(thread);
+
+    if (reader) /*if /remove didn't run */
+        vreader_remove_reader(reader);
+    vreader_free(reader);
 }
 
 int main(int argc, char *argv[])
@@ -232,8 +249,6 @@ int main(int argc, char *argv[])
 
     g_main_loop_unref(loop);
 
-    /* FIXME: no wait to queue a NULL event */
-    /* g_thread_join(thread); */
-
+    libcacard_finalize();
     return ret;
 }

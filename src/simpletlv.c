@@ -320,4 +320,56 @@ failure:
     free(new);
     return NULL;
 }
+
+struct simpletlv_member *
+simpletlv_parse(unsigned char *data, size_t data_len, size_t *outtlv_len)
+{
+    unsigned char *p, *p_end;
+    unsigned char tag;
+    size_t vlen, tlv_len = 0, tlv_allocated = 0;
+    struct simpletlv_member *tlv = NULL, *tlvp = NULL;
+
+    p = data;
+    p_end = p + data_len;
+    while (p < p_end) {
+        /* we can return what was parsed successfully */
+        if (simpletlv_read_tag(&p, p_end - p, &tag, &vlen) < 0) {
+            break;
+        }
+        if (vlen > (size_t) (p_end - p)) {
+            break;
+        }
+
+        /* Extend the allocated structure if needed */
+        if (tlv_len+1 > tlv_allocated) {
+            struct simpletlv_member *newtlv;
+            tlv_allocated += 10;
+            newtlv = realloc(tlv, tlv_allocated * sizeof(struct simpletlv_member));
+            if (newtlv == NULL) /* this is fatal */
+                goto failure;
+            tlv = newtlv;
+        }
+        tlvp = &(tlv[tlv_len++]);
+        tlvp->value.value = NULL;
+
+
+        tlvp->tag = tag;
+        tlvp->length = vlen;
+        tlvp->value.value = malloc(vlen);
+        if (tlvp->value.value == NULL) /* this is fatal */
+            goto failure;
+        memcpy(tlvp->value.value, p, vlen);
+        tlvp->type = SIMPLETLV_TYPE_LEAF;
+
+        p += vlen;
+    }
+
+    *outtlv_len = tlv_len;
+    return tlv;
+
+failure:
+    simpletlv_free(tlv, tlv_len);
+    return NULL;
+}
+
 /* vim: set ts=4 sw=4 tw=0 noet expandtab: */

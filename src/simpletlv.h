@@ -124,4 +124,17 @@ simpletlv_read_tag(unsigned char **buf, size_t buflen,
 struct simpletlv_member *
 simpletlv_clone(struct simpletlv_member *tlv, size_t tlvlen);
 
+/* parse the SimpleTLV compound buffer into internal simpletlv structures
+ *
+ * The returned structure is NEVER recursive, since thre is no unambiguous
+ * way how to determine the recursive structures without the knowledge of
+ * a scheme in advance.
+ *
+ * The calling function is responsible for freeing the structure and its
+ * children by calling simpletlv_free().
+ *
+ */
+struct simpletlv_member *
+simpletlv_parse(unsigned char *data, size_t data_len, size_t *outtlv_len);
+
 #endif

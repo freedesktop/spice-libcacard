@@ -165,6 +165,7 @@ static void get_properties(VReader *reader, int object_type)
     };
     int verified_pki_properties = 0;
     int num_objects = 0, num_objects_expected = -1;
+    int have_applet_information = 0;
 
     status = vreader_xfr_bytes(reader,
                                get_properties, sizeof(get_properties),
@@ -203,6 +204,7 @@ static void get_properties(VReader *reader, int object_type)
         case 0x01: /* Applet Information */
             g_assert_cmpint(vlen, ==, 5);
             g_assert_cmphex(*p, ==, 0x10); /* Applet family */
+            have_applet_information = 1;
             break;
 
         case 0x40: /* Number of objects */
@@ -279,6 +281,8 @@ static void get_properties(VReader *reader, int object_type)
     if (object_type == TEST_PKI) {
         g_assert_cmpint(verified_pki_properties, ==, 1);
     }
+
+    g_assert_cmpint(have_applet_information, ==, 1);
 
     dwRecvLength = APDUBufSize;
     status = vreader_xfr_bytes(reader,

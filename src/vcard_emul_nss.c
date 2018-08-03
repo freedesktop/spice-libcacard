@@ -878,30 +878,6 @@ vcard_emul_force_card_insert(VReader *vreader)
     return VCARD_EMUL_OK;
 }
 
-
-static PRBool
-module_has_removable_hw_slots(SECMODModule *mod)
-{
-    int i;
-    PRBool ret = PR_FALSE;
-    SECMODListLock *moduleLock = SECMOD_GetDefaultModuleListLock();
-
-    if (!moduleLock) {
-        PORT_SetError(SEC_ERROR_NOT_INITIALIZED);
-        return ret;
-    }
-    SECMOD_GetReadLock(moduleLock);
-    for (i = 0; i < mod->slotCount; i++) {
-        PK11SlotInfo *slot = mod->slots[i];
-        if (PK11_IsRemovable(slot) && PK11_IsHW(slot)) {
-            ret = PR_TRUE;
-            break;
-        }
-    }
-    SECMOD_ReleaseReadLock(moduleLock);
-    return ret;
-}
-
 /* Previously we returned FAIL if no readers found. This makes
  * no sense when using hardware, since there may be no readers connected
  * at the time vcard_emul_init is called, but they will be properly
@@ -1041,14 +1017,6 @@ vcard_emul_init(const VCardEmulOptions *options)
     /* make sure we have some PKCS #11 module loaded */
     module_lock = SECMOD_GetDefaultModuleListLock();
     module_list = SECMOD_GetDefaultModuleList();
-    SECMOD_GetReadLock(module_lock);
-    for (mlp = module_list; mlp; mlp = mlp->next) {
-        SECMODModule *module = mlp->module;
-        if (module_has_removable_hw_slots(module)) {
-            break;
-        }
-    }
-    SECMOD_ReleaseReadLock(module_lock);
 
     /* now examine all the slots, finding which should be readers */
     /* We should control this with options. For now we mirror out any

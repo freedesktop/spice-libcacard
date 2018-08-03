@@ -77,13 +77,19 @@ struct VirtualReaderOptionsStruct {
     int cert_count;
 };
 
+enum {
+    USE_HW_NO,
+    USE_HW_YES,
+    USE_HW_REMOVABLE,
+};
+
 struct VCardEmulOptionsStruct {
     void *nss_db;
     VirtualReaderOptions *vreader;
     int vreader_count;
     VCardEmulType hw_card_type;
     const char *hw_type_params;
-    PRBool use_hw;
+    int use_hw;
 };
 
 static int nss_emul_init;
@@ -811,7 +817,7 @@ static const VCardEmulOptions default_options = {
     .vreader_count = 0,
     .hw_card_type = VCARD_EMUL_CAC,
     .hw_type_params = "",
-    .use_hw = PR_TRUE
+    .use_hw = USE_HW_YES,
 };
 
 
@@ -1037,7 +1043,8 @@ vcard_emul_init(const VCardEmulOptions *options)
             PK11SlotInfo *slot = module->slots[i];
 
             /* only map removable HW slots */
-            if (slot == NULL || !PK11_IsRemovable(slot) || !PK11_IsHW(slot)) {
+            if (slot == NULL || !PK11_IsRemovable(slot) ||
+                (options->use_hw == USE_HW_YES && !PK11_IsHW(slot))) {
                 continue;
             }
             if (strcmp("E-Gate 0 0", PK11_GetSlotName(slot)) == 0) {
@@ -1235,9 +1242,11 @@ vcard_emul_options(const char *args)
         } else if (strncmp(args, "use_hw=", 7) == 0) {
             args = strip(args+7);
             if (*args == '0' || *args == 'N' || *args == 'n' || *args == 'F') {
-                opts->use_hw = PR_FALSE;
+                opts->use_hw = USE_HW_NO;
+            } else if (strncmp(args, "removable", 9) == 0) {
+                opts->use_hw = USE_HW_REMOVABLE;
             } else {
-                opts->use_hw = PR_TRUE;
+                opts->use_hw = USE_HW_YES;
             }
             args = find_blank(args);
         /* hw_type= */
@@ -1278,12 +1287,12 @@ vcard_emul_options(const char *args)
             }
         } else if (strncmp(args, "nssemul", 7) == 0) {
             opts->hw_card_type = VCARD_EMUL_CAC;
-            opts->use_hw = PR_TRUE;
+            opts->use_hw = USE_HW_YES;
             args = find_blank(args + 7);
 #if defined(ENABLE_PCSC)
         } else if (strncmp(args, "passthru", 8) == 0) {
             opts->hw_card_type = VCARD_EMUL_PASSTHRU;
-            opts->use_hw = PR_TRUE;
+            opts->use_hw = USE_HW_YES;
             args = find_blank(args + 8);
 #endif
         } else {
@@ -1352,7 +1361,7 @@ vcard_emul_usage(void)
    fprintf(stderr,
 "emul args: comma separated list of the following arguments\n"
 " db={nss_database}               (default sql:/etc/pki/nssdb)\n"
-" use_hw=[yes|no]                 (default yes)\n"
+" use_hw=[yes|no|removable]       (default yes)\n"
 " hw_type={card_type_to_emulate}  (default CAC)\n"
 " hw_param={param_for_card}       (default \"\")\n"
 " nssemul                         (alias for use_hw=yes, hw_type=CAC)\n"
@@ -1373,7 +1382,8 @@ vcard_emul_usage(void)
 "\n"
 "Unless use_hw is set to no, all tokens that look like removable hardware\n"
 "tokens will be presented to the guest using the emulator specified by\n"
-"hw_type, and parameters of hw_param.\n"
+"hw_type, and parameters of hw_param. If use_hw is set to 'removable', "
+"present any removable token.\n"
 "\n"
 "If more one or more soft= parameters are specified, these readers will be\n"
 "presented to the guest\n"

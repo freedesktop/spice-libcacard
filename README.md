@@ -1,4 +1,4 @@
-# libcacard ![alt text][travis]
+# libcacard  [![pipeline status](https://gitlab.freedesktop.org/spice/libcacard/badges/master/pipeline.svg)](https://gitlab.freedesktop.org/spice/libcacard/commits/master) [![coverage report](https://gitlab.freedesktop.org/spice/libcacard/badges/master/coverage.svg)](https://gitlab.freedesktop.org/spice/libcacard/commits/master)
 
 CAC (Common Access Card) library
 
@@ -26,4 +26,3 @@ Extended to new GSC-IS 2.1 standard by:
 
 - Jakub Jelen <jjelen@redhat.com>
 
-[travis]: https://travis-ci.org/SPICE/libcacard.svg?branch=master

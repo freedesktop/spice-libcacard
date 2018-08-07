@@ -61,7 +61,9 @@ endif
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = libcacard.pc
 
-bin_PROGRAMS = vscclient
+include $(srcdir)/build-aux/glib-tap.mk
+
+noinst_PROGRAMS += vscclient
 vscclient_SOURCES = src/vscclient.c
 vscclient_LDADD = libcacard.la $(GTHREAD_LIBS) $(PCSC_LIBS)
 vscclient_CFLAGS = $(AM_CPPFLAGS) $(GTHREAD_CFLAGS) $(PCSC_CFLAGS)
@@ -69,8 +71,6 @@ vscclient_CFLAGS = $(AM_CPPFLAGS) $(GTHREAD_CFLAGS) $(PCSC_CFLAGS)
 if OS_WIN32
 vscclient_CFLAGS += -D__USE_MINGW_ANSI_STDIO=1
 endif
-
-include $(srcdir)/build-aux/glib-tap.mk
 
 tests/softhsm2.conf:
 	$(AM_V_GEN)(cd tests/ && $(abs_srcdir)/tests/setup-softhsm2.sh)

@@ -143,7 +143,7 @@ void get_properties_coid(VReader *reader, const unsigned char coid[2],
             g_debug("The generated SimpleTLV can not be parsed");
             g_assert_not_reached();
         }
-        g_debug("Tag: 0x%02x, Len: %lu", tag, vlen);
+        g_debug("Tag: 0x%02x, Len: %" G_GSIZE_FORMAT, tag, vlen);
         g_assert_cmpint(vlen, <=, p_end - p);
 
         switch (tag) {
@@ -175,7 +175,7 @@ void get_properties_coid(VReader *reader, const unsigned char coid[2],
                     g_assert_not_reached();
                 }
                 g_assert_cmpint(vlen2, <=, p2_end - p2);
-                g_debug("    Tag: 0x%02x, Len: %lu", tag2, vlen2);
+                g_debug("    Tag: 0x%02x, Len: %" G_GSIZE_FORMAT, tag2, vlen2);
 
                 switch (tag2) {
                 case 0x41: /* Object ID */
@@ -388,7 +388,7 @@ void read_buffer(VReader *reader, uint8_t type, int object_type)
                 g_debug("The generated SimpleTLV can not be parsed");
                 g_assert_not_reached();
             }
-            g_debug("Tag: 0x%02x, Len: %lu", tag, vlen);
+            g_debug("Tag: 0x%02x, Len: %" G_GSIZE_FORMAT, tag, vlen);
 
             switch (tag) {
             case 0xF3: /* CardURL from CCC */

@@ -171,7 +171,7 @@ static void parse_acr(uint8_t *buf, int buflen)
             g_assert_not_reached();
         }
         g_assert_cmpint(vlen, <=, p_end - p);
-        g_debug("Tag: 0x%02x, Len: %lu", tag, vlen);
+        g_debug("Tag: 0x%02x, Len: %" G_GSIZE_FORMAT, tag, vlen);
         switch (tag) {
         case 0x01: /* Applet Information */
             g_assert_cmpint(vlen, ==, 5);

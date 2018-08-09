@@ -264,7 +264,7 @@ cac_common_process_apdu(VCard *card, VCardAPDU *apdu, VCardResponse **response)
     switch (apdu->a_ins) {
     case CAC_GET_PROPERTIES:
         /* 5.3.3.4: Get Properties APDU */
-        assert(applet_private);
+        g_assert(applet_private);
 
         if (apdu->a_p2 != 0x00) {
             /* P2 needs to be 0x00 */
@@ -330,7 +330,7 @@ cac_common_process_apdu(VCard *card, VCardAPDU *apdu, VCardResponse **response)
             break;
         }
 
-        assert(applet_private);
+        g_assert(applet_private);
 
         /* handle file id setting */
         if (apdu->a_Lc != 2) {
@@ -460,7 +460,7 @@ cac_applet_pki_reset(VCard *card, int channel)
     VCardAppletPrivate *applet_private;
     CACPKIAppletData *pki_applet;
     applet_private = vcard_get_current_applet_private(card, channel);
-    assert(applet_private);
+    g_assert(applet_private);
     pki_applet = &(applet_private->u.pki_data);
 
     g_free(pki_applet->sign_buffer);
@@ -474,7 +474,7 @@ cac_applet_passthrough_reset(VCard *card, int channel)
 {
     VCardAppletPrivate *applet_private;
     applet_private = vcard_get_current_applet_private(card, channel);
-    assert(applet_private);
+    g_assert(applet_private);
 
     g_free(applet_private->tag_buffer);
     applet_private->tag_buffer = NULL;
@@ -498,7 +498,7 @@ cac_applet_pki_process_apdu(VCard *card, VCardAPDU *apdu,
     VCardStatus ret = VCARD_FAIL;
 
     applet_private = vcard_get_current_applet_private(card, apdu->a_channel);
-    assert(applet_private);
+    g_assert(applet_private);
     pki_applet = &(applet_private->u.pki_data);
 
     switch (apdu->a_ins) {
@@ -574,7 +574,7 @@ cac_applet_aca_process_apdu(VCard *card, VCardAPDU *apdu,
     int format;
 
     applet_private = vcard_get_current_applet_private(card, apdu->a_channel);
-    assert(applet_private);
+    g_assert(applet_private);
     aca_applet = &(applet_private->u.aca_data);
 
     switch (apdu->a_ins) {
@@ -713,7 +713,7 @@ cac_passthrough_container_process_apdu(VCard *card, VCardAPDU *apdu,
     VCardAppletPrivate *applet_private;
 
     applet_private = vcard_get_current_applet_private(card, apdu->a_channel);
-    assert(applet_private);
+    g_assert(applet_private);
     pt_applet = &(applet_private->u.pt_data);
 
     switch (apdu->a_ins) {

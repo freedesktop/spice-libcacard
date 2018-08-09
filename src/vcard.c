@@ -251,7 +251,7 @@ vcard_applet_get_aid(VCardApplet *applet, int *aid_len)
 void
 vcard_select_applet(VCard *card, int channel, VCardApplet *applet)
 {
-    assert(channel < MAX_CHANNEL);
+    g_assert(channel >= 0 && channel < MAX_CHANNEL);
 
     card->current_applet[channel] = applet;
     /* reset the applet */

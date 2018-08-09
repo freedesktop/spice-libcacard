@@ -754,7 +754,7 @@ vcard7816_vm_process_apdu(VCard *card, VCardAPDU *apdu,
     }
 
     /* response should have been set somewhere */
-    assert(*response != NULL);
+    g_assert(*response != NULL);
     return VCARD_DONE;
 }
 
@@ -795,7 +795,7 @@ vcard_process_apdu(VCard *card, VCardAPDU *apdu, VCardResponse **response)
         return vcard7816_vm_process_apdu(card, apdu, response);
     case VCARD_DIRECT:
         /* if we are type direct, then the applet should handle everything */
-        assert(!"VCARD_DIRECT: applet failure");
+        g_assert(!"VCARD_DIRECT: applet failure");
         break;
     default:
         g_warn_if_reached();

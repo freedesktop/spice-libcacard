@@ -168,7 +168,7 @@ cac_aca_get_acr(size_t *acr_len, unsigned char *acrid)
     size_t i;
     int j = 0;
 
-    g_assert_nonnull(acr_len);
+    g_return_val_if_fail(acr_len != NULL, NULL);
 
     if (acrid != NULL) {
         r = g_malloc(sizeof(struct simpletlv_member));
@@ -325,7 +325,7 @@ cac_aca_get_service_table(size_t *r_len, unsigned int pki_applets)
     size_t i, j = 0;
     unsigned int num_entries;
 
-    g_assert_nonnull(r_len);
+    g_return_val_if_fail(r_len != NULL, NULL);
 
     num_entries = service_table.num_static_entries + pki_applets;
     r = g_malloc_n(num_entries + 1, sizeof(struct simpletlv_member));
@@ -859,7 +859,7 @@ cac_aca_get_applet_acr(unsigned int pki_applets, size_t *acr_len, unsigned char 
     unsigned char applet_id = 0;
     unsigned int num_applets = applets_table.num_static_applets + pki_applets;
 
-    g_assert_nonnull(acr_len);
+    g_return_val_if_fail(acr_len != NULL, NULL);
 
     if (aid != NULL && aid_len != 0) {
         /* We are selecting only one applet*/
@@ -969,7 +969,7 @@ cac_aca_get_amp(size_t *amp_len)
     unsigned char *entry = NULL;
     size_t i = 0;
 
-    g_assert_nonnull(amp_len);
+    g_return_val_if_fail(amp_len != NULL, NULL);
 
     r = g_malloc_n(amp_table.num_entries + 1, sizeof(struct simpletlv_member));
 

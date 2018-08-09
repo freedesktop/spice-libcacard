@@ -30,31 +30,31 @@
 #include "simpletlv.h"
 #include "common.h"
 
-static unsigned char cac_aca_aid[] = {
+static const unsigned char cac_aca_aid[] = {
     0xa0, 0x00, 0x00, 0x00, 0x79, 0x03, 0x00 };
-static unsigned char cac_ccc_aid[] = {
+static const unsigned char cac_ccc_aid[] = {
     0xa0, 0x00, 0x00, 0x01, 0x16, 0xDB, 0x00 };
-static unsigned char cac_02fb_aid[] = {
+static const unsigned char cac_02fb_aid[] = {
     0xa0, 0x00, 0x00, 0x00, 0x79, 0x02, 0xFB };
-static unsigned char cac_1201_aid[] = {
+static const unsigned char cac_1201_aid[] = {
     0xa0, 0x00, 0x00, 0x00, 0x79, 0x12, 0x01 };
-static unsigned char cac_1202_aid[] = {
+static const unsigned char cac_1202_aid[] = {
     0xa0, 0x00, 0x00, 0x00, 0x79, 0x12, 0x02 };
-static unsigned char cac_02f0_aid[] = {
+static const unsigned char cac_02f0_aid[] = {
     0xa0, 0x00, 0x00, 0x00, 0x79, 0x02, 0xF0 };
-static unsigned char cac_02f1_aid[] = {
+static const unsigned char cac_02f1_aid[] = {
     0xa0, 0x00, 0x00, 0x00, 0x79, 0x02, 0xF1 };
-static unsigned char cac_02f2_aid[] = {
+static const unsigned char cac_02f2_aid[] = {
     0xa0, 0x00, 0x00, 0x00, 0x79, 0x02, 0xF2 };
-static unsigned char cac_access_control_aid[] = {
+static const unsigned char cac_access_control_aid[] = {
     0xa0, 0x00, 0x00, 0x01, 0x16, 0x30, 0x00 };
-static unsigned char cac_pki_certificate_aid[] = {
+static const unsigned char cac_pki_certificate_aid[] = {
     0xa0, 0x00, 0x00, 0x00, 0x79, 0x02, 0xFE };
-static unsigned char cac_pki_credential_aid[] = {
+static const unsigned char cac_pki_credential_aid[] = {
     0xa0, 0x00, 0x00, 0x00, 0x79, 0x02, 0xFD };
-static unsigned char cac_person_instance_aid[] = {
+static const unsigned char cac_person_instance_aid[] = {
     0xa0, 0x00, 0x00, 0x00, 0x79, 0x02, 0x00 };
-static unsigned char cac_personnel_aid[] = {
+static const unsigned char cac_personnel_aid[] = {
     0xa0, 0x00, 0x00, 0x00, 0x79, 0x02, 0x01 };
 
 
@@ -2022,7 +2022,7 @@ failure:
 
 static VCardAppletPrivate *
 cac_new_passthrough_applet_private(VCard *card, const char *label,
-                                   unsigned char *aid, unsigned int aid_len)
+                                   const unsigned char *aid, unsigned int aid_len)
 {
     CACPTAppletData *pt_applet_data;
     VCardAppletPrivate *applet_private;
@@ -2168,7 +2168,7 @@ failure:
 }
 
 static VCardApplet *
-cac_new_empty_applet(unsigned char *aid, unsigned int aid_len,
+cac_new_empty_applet(const unsigned char *aid, unsigned int aid_len,
                      unsigned char coids[][2], unsigned int coids_len)
 {
     VCardAppletPrivate *applet_private;
@@ -2200,7 +2200,7 @@ failure:
 
 static VCardApplet *
 cac_new_passthrough_applet(VCard *card, const char *label,
-                           unsigned char *aid, unsigned int aid_len)
+                           const unsigned char *aid, unsigned int aid_len)
 {
     VCardAppletPrivate *applet_private;
     VCardApplet *applet;

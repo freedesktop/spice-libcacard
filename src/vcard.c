@@ -35,7 +35,7 @@ struct VCardStruct {
 };
 
 VCardBufferResponse *
-vcard_buffer_response_new(unsigned char *buffer, int size)
+vcard_buffer_response_new(const unsigned char *buffer, int size)
 {
     VCardBufferResponse *new_buffer;
 
@@ -221,7 +221,7 @@ vcard_add_applet(VCard *card, VCardApplet *applet)
  * manage applets
  */
 VCardApplet *
-vcard_find_applet(VCard *card, unsigned char *aid, int aid_len)
+vcard_find_applet(VCard *card, const unsigned char *aid, int aid_len)
 {
     VCardApplet *current_applet;
 

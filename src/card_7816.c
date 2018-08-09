@@ -15,10 +15,10 @@
 
 
 /* Global Platform Card Manager applet AID */
-static unsigned char gp_aid[] = {
+static const unsigned char gp_aid[] = {
     0xa0, 0x00, 0x00, 0x00, 0x03, 0x00, 0x00 };
 /* Global Platfrom Card Manager response on select applet */
-static unsigned char gp_response[] = {
+static const unsigned char gp_response[] = {
     0x6F, 0x19, 0x84, 0x08, 0xA0, 0x00, 0x00, 0x00,
     0x03, 0x00, 0x00, 0x00, 0xA5, 0x0D, 0x9F, 0x6E,
     0x06, 0x12, 0x91, 0x51, 0x81, 0x01, 0x00, 0x9F,
@@ -61,7 +61,7 @@ vcard_response_set_status_bytes(VCardResponse *response,
  * set up everything but the resonse bytes.
  */
 VCardResponse *
-vcard_response_new_data(unsigned char *buf, int len)
+vcard_response_new_data(const unsigned char *buf, int len)
 {
     VCardResponse *new_response;
 
@@ -75,7 +75,7 @@ vcard_response_new_data(unsigned char *buf, int len)
 }
 
 static VCardResponse *
-vcard_init_buffer_response(VCard *card, unsigned char *buf, int len)
+vcard_init_buffer_response(VCard *card, const unsigned char *buf, int len)
 {
     VCardResponse *response;
     VCardBufferResponse *buffer_response;
@@ -102,7 +102,7 @@ vcard_init_buffer_response(VCard *card, unsigned char *buf, int len)
  * general buffer to hold results from APDU calls
  */
 VCardResponse *
-vcard_response_new(VCard *card, unsigned char *buf,
+vcard_response_new(VCard *card, const unsigned char *buf,
                    int len, int Le, vcard_7816_status_t status)
 {
     VCardResponse *new_response;

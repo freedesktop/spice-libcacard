@@ -13,7 +13,7 @@
  * response buffers are used when we need to return more data than will fit in
  * a normal APDU response (nominally 254 bytes).
  */
-VCardBufferResponse *vcard_buffer_response_new(unsigned char *buffer, int size);
+VCardBufferResponse *vcard_buffer_response_new(const unsigned char *buffer, int size);
 void vcard_buffer_response_delete(VCardBufferResponse *buffer_response);
 
 
@@ -51,7 +51,7 @@ void vcard_set_type(VCard *card, VCardType type);
 /* add a new applet to a card */
 VCardStatus vcard_add_applet(VCard *card, VCardApplet *applet);
 /* find the applet on the card with the given aid */
-VCardApplet *vcard_find_applet(VCard *card, unsigned char *aid, int aid_len);
+VCardApplet *vcard_find_applet(VCard *card, const unsigned char *aid, int aid_len);
 /* set the following applet to be current on the given channel */
 void vcard_select_applet(VCard *card, int channel, VCardApplet *applet);
 /* get the card type specific private data on the given channel */

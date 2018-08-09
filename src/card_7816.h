@@ -14,7 +14,7 @@
  * constructors for VCardResponse's
  */
 /* response from a return buffer and a status */
-VCardResponse *vcard_response_new(VCard *card, unsigned char *buf, int len,
+VCardResponse *vcard_response_new(VCard *card, const unsigned char *buf, int len,
                                   int Le, vcard_7816_status_t status);
 /* response from a return buffer and status bytes */
 VCardResponse *vcard_response_new_bytes(VCard *card, unsigned char *buf,
@@ -29,7 +29,7 @@ VCardResponse *vcard_response_new_status_bytes(unsigned char sw1,
 VCardResponse *vcard_make_response(vcard_7816_status_t status);
 
 /* create a raw response (status has already been encoded */
-VCardResponse *vcard_response_new_data(unsigned char *buf, int len);
+VCardResponse *vcard_response_new_data(const unsigned char *buf, int len);
 
 void vcard_response_set_status_bytes(VCardResponse *response,
                                      unsigned char sw1, unsigned char sw2);

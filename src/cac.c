@@ -398,7 +398,7 @@ cac_common_process_apdu_read(VCard *card, VCardAPDU *apdu,
 
         /* P1 | P2 defines offset to read from */
         offset = (apdu->a_p1 << 8) | apdu->a_p2;
-        g_debug("%s: Reqested offset: %d bytes", __func__, offset);
+        g_debug("%s: Requested offset: %d bytes", __func__, offset);
 
         /* First byte selects TAG+LEN or VALUE buffer */
         switch (apdu->a_body[0]) {
@@ -414,7 +414,7 @@ cac_common_process_apdu_read(VCard *card, VCardAPDU *apdu,
                         apdu->a_Le, VCARD7816_SW1_SUCCESS, 0);
             break;
         case CAC_FILE_TAG:
-            g_debug("%s: Reqested: %d bytes", __func__, size);
+            g_debug("%s: Requested: %d bytes", __func__, size);
             size = MIN(size, applet_private->tag_buffer_len - offset);
             if (size < 0) { /* Overrun returns (SW1=0x6A, SW2=0x86) */
                 *response = vcard_make_response(

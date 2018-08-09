@@ -241,7 +241,7 @@ simpletlv_read_tag(unsigned char **buf, size_t buflen, unsigned char *tag_out,
 /*
  * Merges two structures into one, creating a new shallow copy of both
  * of the structures.
- * Resulting length is the sum of  a_len  and  b_len  arguemnts.
+ * Resulting length is the sum of  a_len  and  b_len  arguments.
  */
 struct simpletlv_member *
 simpletlv_merge(const struct simpletlv_member *a, size_t a_len,

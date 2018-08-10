@@ -25,6 +25,7 @@
 #include "config.h"
 #endif
 
+#include <glib.h>
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
@@ -86,10 +87,7 @@ simpletlv_encode_internal(struct simpletlv_member *tlv, size_t tlv_len,
 
     if (outlen == 0) {
         /* allocate a new buffer */
-        a = malloc(expect_len);
-        if (a == NULL) {
-            return -1;
-        }
+        a = g_malloc(expect_len);
         tmp = a;
         tmp_len = expect_len;
     } else if ((int)outlen >= expect_len) {
@@ -141,7 +139,7 @@ simpletlv_encode_internal(struct simpletlv_member *tlv, size_t tlv_len,
     return tmp_len - p_len;
 
 failure:
-    free(a);
+    g_free(a);
     return -1;
 }
 
@@ -250,11 +248,9 @@ simpletlv_merge(const struct simpletlv_member *a, size_t a_len,
     struct simpletlv_member *r;
     size_t r_len = a_len + b_len;
 
-    r = malloc(r_len * sizeof(struct simpletlv_member));
-    if (r == NULL)
-        return NULL;
+    r = g_new(struct simpletlv_member, r_len);
 
-    /* the uggly way */
+    /* the ugly way */
     offset = a_len * sizeof(struct simpletlv_member);
     memcpy(r, a, offset);
     memcpy(&r[a_len], b, b_len * sizeof(struct simpletlv_member));
@@ -272,10 +268,10 @@ simpletlv_free(struct simpletlv_member *tlv, size_t tlvlen)
         if (tlv[i].type == SIMPLETLV_TYPE_COMPOUND) {
             simpletlv_free(tlv[i].value.child, tlv[i].length);
         } else {
-            free(tlv[i].value.value);
+            g_free(tlv[i].value.value);
         }
     }
-    free(tlv);
+    g_free(tlv);
 }
 
 struct simpletlv_member *
@@ -284,9 +280,7 @@ simpletlv_clone(struct simpletlv_member *tlv, size_t tlvlen)
     size_t i = 0, j;
     struct simpletlv_member *new = NULL;
 
-    new = malloc(sizeof(struct simpletlv_member)*tlvlen);
-    if (!new)
-        goto failure;
+    new = g_new(struct simpletlv_member, tlvlen);
 
     for (i = 0; i < tlvlen; i++) {
         new[i].type = tlv[i].type;
@@ -298,10 +292,7 @@ simpletlv_clone(struct simpletlv_member *tlv, size_t tlvlen)
             if (new[i].value.child == NULL)
                 goto failure;
         } else {
-            new[i].value.value = malloc(
-                sizeof(unsigned char)*tlv[i].length);
-            if (new[i].value.value == NULL)
-                goto failure;
+            new[i].value.value = g_new(unsigned char, tlv[i].length);
             memcpy(new[i].value.value, tlv[i].value.value,
                 tlv[i].length);
         }
@@ -313,10 +304,10 @@ failure:
         if (tlv[i].type == SIMPLETLV_TYPE_COMPOUND) {
             simpletlv_free(new[i].value.child, new[i].length);
         } else {
-            free(new[i].value.value);
+            g_free(new[i].value.value);
         }
     }
-    free(new);
+    g_free(new);
     return NULL;
 }
 
@@ -354,9 +345,7 @@ simpletlv_parse(unsigned char *data, size_t data_len, size_t *outtlv_len)
 
         tlvp->tag = tag;
         tlvp->length = vlen;
-        tlvp->value.value = malloc(vlen);
-        if (tlvp->value.value == NULL) /* this is fatal */
-            goto failure;
+        tlvp->value.value = g_malloc(vlen);
         memcpy(tlvp->value.value, p, vlen);
         tlvp->type = SIMPLETLV_TYPE_LEAF;
 

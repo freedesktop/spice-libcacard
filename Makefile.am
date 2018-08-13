@@ -141,6 +141,7 @@ EXTRA_DIST +=					\
 	tests/db/cert8.db                       \
 	tests/db/key3.db                        \
 	tests/db/secmod.db                      \
+	tests/cert.cfg				\
 	$(NULL)
 
 # aclocal will copy m4 files from pkg-config/autoconf-archives

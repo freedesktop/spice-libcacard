@@ -1313,6 +1313,7 @@ vcard_emul_read_object(VCard *card, const char *label,
     PK11GenericObject *obj, *firstObj, *myObj = NULL;
     SECItem result;
     SECStatus r;
+    unsigned char *ret;
 
     slot = vcard_emul_card_get_slot(card);
 
@@ -1331,7 +1332,7 @@ vcard_emul_read_object(VCard *card, const char *label,
             && memcmp(label, result.data, result.len) == 0)
             found = 1;
 
-        free(result.data);
+        PORT_Free(result.data);
         result.data = NULL;
 
         if (found) {
@@ -1352,8 +1353,9 @@ vcard_emul_read_object(VCard *card, const char *label,
         return NULL;
 
     *ret_len = result.len;
-    return result.data;
-
+    ret = g_memdup(result.data, result.len);
+    PORT_Free(result.data);
+    return ret;
 }
 
 void

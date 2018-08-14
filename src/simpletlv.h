@@ -48,9 +48,11 @@ struct simpletlv_member {
 
 /*
  * Calculate expected length of TLV buffer
- * @param ltv         array of LTV structres to encode
+ * @param ltv         array of TLV structures to encode
  * @param tlvlen      number of members in the array to encode
  * @param buffer_type Encode only tags + lengths, values or both
+ * @return            The length of the data in the TLV record,
+ *                    -1 on errors
  */
 int
 simpletlv_get_length(struct simpletlv_member *, size_t,
@@ -72,12 +74,13 @@ simpletlv_merge(const struct simpletlv_member *a, size_t a_len,
                 const struct simpletlv_member *b, size_t b_len);
 
 /*
- * Encode strucure into SimpleLTV format, TL together with V
+ * Encode structure into SimpleTLV format, TL together with V
  * @param  tlv       array of TLV structures to encode
  * @param  tlvlen    number of members in the array to encode
  * @param  out       Byte array to write into
  * @param  outlen    The length of output array
  * @param  ptr       The end of TLV record
+ * @return           The length of the encoded data, -1 on errors
  */
 int
 simpletlv_encode(struct simpletlv_member *tlv, size_t tlv_len,

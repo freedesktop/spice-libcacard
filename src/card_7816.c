@@ -659,7 +659,7 @@ vcard7816_vm_process_apdu(VCard *card, VCardAPDU *apdu,
                 *response = vcard_response_new(card, gp_response,
                     sizeof(gp_response), apdu->a_Le, VCARD7816_STATUS_SUCCESS);
             } else {
-                static unsigned char fci_template[] = {
+                unsigned char fci_template[] = {
                     0x6F, 0x0B, 0x84, 0x07, 0xA0, 0x00, 0x00, 0x00,
                     0x79, 0x03, 0x00, 0xA5, 0x00};
                 /* with GSC-IS 2 applets, we do not need to return anything

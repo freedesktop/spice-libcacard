@@ -669,7 +669,7 @@ vcard7816_vm_process_apdu(VCard *card, VCardAPDU *apdu,
                  * 6F 0B : FCI Template
                  *  84 07 : Application / file AID
                  *   A0 00 00 00 79 03 00
-                 *  A5 00 : Porprietary data
+                 *  A5 00 : Proprietary data
                  */
                 /* Insert the correct AID in the structure */
                 g_assert_cmpint(apdu->a_Lc, ==, 7);

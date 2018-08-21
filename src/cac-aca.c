@@ -806,7 +806,7 @@ cac_aca_get_applet_acr_coid(unsigned int pki_applets, unsigned char *coid)
 
     r = g_malloc(sizeof(struct simpletlv_member));
 
-    for (i = 0; i <= applets_table.num_applets; i++) {
+    for (i = 0; i < applets_table.num_applets; i++) {
         /* Skip unused PKI applets */
         if (i >= pki_applets && i < 10)
             continue;

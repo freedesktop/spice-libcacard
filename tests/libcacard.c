@@ -15,6 +15,7 @@
 #include "libcacard.h"
 #include "simpletlv.h"
 #include "common.h"
+#include "src/common.h"
 
 #define ARGS "db=\"sql:%s\" use_hw=no soft=(,Test,CAC,,cert1,cert2,cert3)"
 
@@ -86,6 +87,25 @@ static void libcacard_init(void)
 
     g_free(args);
     g_free(dbdir);
+}
+
+static void test_hex_dump(void)
+{
+    unsigned char binary_data[4000];
+    unsigned int i;
+    const char expected_data[] = "0x00 0x01 0x02 0x03 0x04 0x05 0x06 0x07*";
+
+    for (i = 0; i < G_N_ELEMENTS(binary_data); i++) {
+        binary_data[i] = i & 0xff;
+    }
+
+    g_test_expect_message(G_LOG_DOMAIN, G_LOG_LEVEL_DEBUG, expected_data);
+    g_debug("%s", hex_dump(binary_data, G_N_ELEMENTS(binary_data)));
+    g_test_assert_expected_messages();
+
+    g_test_expect_message(G_LOG_DOMAIN, G_LOG_LEVEL_DEBUG, expected_data);
+    g_debug("%s", hex_dump(binary_data, 8));
+    g_test_assert_expected_messages();
 }
 
 static void test_list(void)
@@ -1091,6 +1111,7 @@ int main(int argc, char *argv[])
 
     libcacard_init();
 
+    g_test_add_func("/libcacard/hexdump", test_hex_dump);
     g_test_add_func("/libcacard/list", test_list);
     g_test_add_func("/libcacard/card-remove-insert", test_card_remove_insert);
     g_test_add_func("/libcacard/xfer", test_xfer);

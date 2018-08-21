@@ -30,9 +30,8 @@ VCardStatus vcard_init(VReader *vreader, VCard *vcard,
         rv = cac_card_init(vreader, vcard, params,
             cert, cert_len, key,  cert_count);
         if (rv == VCARD_DONE)
-            rv = gp_card_init(vreader, vcard, params,
-                 cert, cert_len, key,  cert_count);
-	return rv;
+            rv = gp_card_init(vreader, vcard);
+        return rv;
     /* add new ones here */
     case VCARD_EMUL_PASSTHRU:
     default:

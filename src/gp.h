@@ -22,9 +22,6 @@
  * this file. All the rest are connected through function pointers.
  */
 VCardStatus
-gp_card_init(VReader *reader, VCard *card, const char *params,
-             unsigned char * const *cert, int cert_len[],
-             VCardKey *key[] /* adopt the keys*/, int cert_count);
-
+gp_card_init(VReader *reader, VCard *card);
 
 #endif

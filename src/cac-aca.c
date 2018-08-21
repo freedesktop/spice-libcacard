@@ -131,7 +131,7 @@ struct acr_table {
  *  00     V: ACRType: BSI_ACR_ALWAYS
  *  00     V: Number of AccessMethods in this ACR
  */
-struct acr_table acr_table = {
+static const struct acr_table acr_table = {
     11, {
         {0x00, ACR_ALWAYS, 0x00, 0},
         {0x01, ACR_NEVER, 0x00, 0},
@@ -287,7 +287,7 @@ struct service_applet_table {
  *   A0 00 00 00 79 12 02
  */
 
-struct service_applet_table service_table = {
+static const struct service_applet_table service_table = {
     22, 12, {
         /* Variable PKI applets entries */
         {0x61, 7, "\xA0\x00\x00\x00\x79\x01\x00"},
@@ -444,7 +444,7 @@ struct acr_applets {
  * [...]
  */
 
-struct acr_applets applets_table = {
+static const struct acr_applets applets_table = {
     23, 13, {
         /* Dynamic PKI applets */
         {0x61, 2, {
@@ -703,7 +703,7 @@ struct acr_applets applets_table = {
 };
 
 static unsigned char *
-acr_applet_object_encode(struct acr_object *object, unsigned char *out,
+acr_applet_object_encode(const struct acr_object *object, unsigned char *out,
                          unsigned int outlen, unsigned int *lenp)
 {
     unsigned int j;
@@ -750,7 +750,7 @@ acr_applet_object_encode(struct acr_object *object, unsigned char *out,
 }
 
 static unsigned char *
-acr_applet_encode(struct acr_applet *applet, unsigned int *outlen)
+acr_applet_encode(const struct acr_applet *applet, unsigned int *outlen)
 {
     unsigned char *buffer = NULL, *p, *lenp;
     unsigned int i, j, plen, objlen, buffer_len;
@@ -943,7 +943,7 @@ struct amp_table {
  *   A0 00 00 00 79 03 00
  */
 
-struct amp_table amp_table = {
+static const struct amp_table amp_table = {
     3, {
         {0x1F, 7, "\xA0\x00\x00\x00\x79\x03\x00"},
         {0x1E, 7, "\xA0\x00\x00\x00\x79\x03\x00"},
@@ -951,7 +951,7 @@ struct amp_table amp_table = {
     }
 };
 
-static unsigned char amp_table_extended[] = {
+static const unsigned char amp_table_extended[] = {
     0x1F, 0x00, 0x07, 0xA0, 0x00, 0x00, 0x00, 0x79, 0x03, 0x00,
     0x12, 0x00, 0x00, 0x00,
     /* Sometimes it can be 1E 00 07 A0 00 00 00 79 03 00 10 00 00 00 */
@@ -1005,7 +1005,7 @@ cac_aca_get_amp(size_t *amp_len)
  *    10  Applet family
  *    02 06 02 02  Applet version
  */
-unsigned char applet_information[] = "\x10\x02\x06\x02\x02";
+static unsigned char applet_information[] = "\x10\x02\x06\x02\x02";
 static struct simpletlv_member aca_properties[1] = {
   {CAC_PROPERTIES_APPLET_INFORMATION, 5, {/*.value = applet_information*/},
       SIMPLETLV_TYPE_LEAF},
@@ -1058,7 +1058,7 @@ cac_aca_get_acr_response_extended(VCard *card, int Le, unsigned char *acrid)
     p = buffer;
 
     for (i = 0; i < acr_table.num_entries; i++) {
-        struct acr_entry *a = &acr_table.entries[i];
+        const struct acr_entry *a = &acr_table.entries[i];
         g_assert_cmpint(a->num_access_methods, <=, MAX_ACCESS_METHODS);
         *p++ = a->num_access_methods == 2 ? 0x08 : 0x06;
         *p++ = a->acrid;
@@ -1259,7 +1259,7 @@ cac_aca_get_applet_acr_response_extended(VCard *card, int Le,
     plen = buffer_len;
 
     for (i = 0; i < applets_table.num_applets; i++) {
-        struct acr_applet *a;
+        const struct acr_applet *a;
         unsigned char *len;
         /* Skip unused PKI applets */
         if (i >= pki_applets && i < 10)
@@ -1273,7 +1273,7 @@ cac_aca_get_applet_acr_response_extended(VCard *card, int Le,
         *p++ = a->num_objects;
         plen -= 3;
         for (j = 0; j < a->num_objects; j++) {
-            struct acr_object *o = &a->objects[j];
+            const struct acr_object *o = &a->objects[j];
             unsigned char *len2;
             unsigned int olen;
 
@@ -1409,7 +1409,7 @@ cac_aca_get_service_response_extended(VCard *card, int Le,
     p = buffer;
 
     for (i = 0; i < service_table.num_entries; i++) {
-        struct applet_entry *e;
+        const struct applet_entry *e;
         /* Skip unused PKI applets */
         if (i >= pki_applets && i < 10)
             continue;

@@ -1081,7 +1081,7 @@ cac_aca_get_acr_response_extended(VCard *card, int Le, unsigned char *acrid)
     r = vcard_response_new(card, buffer, buffer_len, Le,
         VCARD7816_STATUS_SUCCESS);
     g_debug("%s: response bytes: %s", __func__,
-        hex_dump(buffer, buffer_len, NULL, 0));
+        hex_dump(buffer, buffer_len));
     g_free(buffer);
     return r;
 }
@@ -1163,7 +1163,7 @@ cac_aca_get_applet_acr_response_simpletlv(VCard *card, int Le,
     /* Prepare the SimpleTLV structures */
     properties = cac_aca_get_properties(&properties_len);
     if (coid != NULL) {
-        g_debug("%s: Called. COID = %s", __func__, hex_dump(coid, 2, NULL, 0));
+        g_debug("%s: Called. COID = %s", __func__, hex_dump(coid, 2));
 
         /* getting the table for Card Object ID (2B) */
         acr_len = 1; // returns exactly one element if found
@@ -1199,7 +1199,7 @@ cac_aca_get_applet_acr_response_simpletlv(VCard *card, int Le,
     r = vcard_response_new(card, acr_buffer, acr_buffer_len, Le,
         VCARD7816_STATUS_SUCCESS);
     g_debug("%s: response bytes: %s", __func__,
-        hex_dump(acr_buffer, acr_buffer_len, NULL, 0));
+        hex_dump(acr_buffer, acr_buffer_len));
 
 failure:
     g_free(list);
@@ -1293,7 +1293,7 @@ cac_aca_get_applet_acr_response_extended(VCard *card, int Le,
     r = vcard_response_new(card, buffer, buffer_len, Le,
         VCARD7816_STATUS_SUCCESS);
     g_debug("%s: response bytes: %s", __func__,
-        hex_dump(buffer, buffer_len, NULL, 0));
+        hex_dump(buffer, buffer_len));
 failure:
     g_free(buffer);
     return r;
@@ -1427,7 +1427,7 @@ cac_aca_get_service_response_extended(VCard *card, int Le,
     r = vcard_response_new(card, buffer, buffer_len, Le,
         VCARD7816_STATUS_SUCCESS);
     g_debug("%s: response bytes: %s", __func__,
-        hex_dump(buffer, buffer_len, NULL, 0));
+        hex_dump(buffer, buffer_len));
     g_free(buffer);
     return r;
 }

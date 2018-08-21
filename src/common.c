@@ -52,29 +52,20 @@ lebytes2ushort(const unsigned char *buf)
 static char hexdump_buffer[5*MAX_STATIC_BYTES];
 /*
  * Creates printable representation in hexadecimal format of the data
- * provided in the  buf  buffer. If  out  buffer is provided, the data
- * will be written into it. Otherwise, static buffer will be used, which
+ * provided in the  buf  buffer. A static buffer will be used, which
  * can hold up to 1024 bytes (longer will get truncated).
  */
 char *
-hex_dump(unsigned char *buf, size_t buflen, unsigned char **out, size_t outlen)
+hex_dump(unsigned char *buf, size_t buflen)
 {
     char *p, *start;
-    size_t i, expect_len = buflen*5;
+    size_t i;
 
     if (buflen <= 0)
         return NULL;
 
-    if (out == NULL) {
-        start = hexdump_buffer;
-        buflen = MIN(buflen, MAX_STATIC_BYTES);
-    } else {
-        if (outlen < expect_len) {
-            /* too short output buffer */
-            return NULL;
-        }
-        start = (char *) *out;
-    }
+    start = hexdump_buffer;
+    buflen = MIN(buflen, MAX_STATIC_BYTES);
 
     p = start;
     for (i = 0; i < buflen; i++) {

@@ -29,7 +29,6 @@
 unsigned char *ushort2lebytes(unsigned char *buf, unsigned short x);
 unsigned short lebytes2ushort(const unsigned char *buf);
 
-char *hex_dump(unsigned char *buf, size_t buflen,
-               unsigned char **out, size_t outlen);
+char *hex_dump(unsigned char *buf, size_t buflen);
 
 #endif

@@ -964,7 +964,7 @@ cac_new_pki_applet_private(int i, const unsigned char *cert,
         goto failure;
     }
     g_debug("%s: applet_private->tag_buffer = %s", __func__,
-        hex_dump(applet_private->tag_buffer, applet_private->tag_buffer_len, NULL, 0));
+        hex_dump(applet_private->tag_buffer, applet_private->tag_buffer_len));
 
     /* Value buffer */
     /* Ex:
@@ -981,7 +981,7 @@ cac_new_pki_applet_private(int i, const unsigned char *cert,
         goto failure;
     }
     g_debug("%s: applet_private->val_buffer = %s", __func__,
-        hex_dump(applet_private->val_buffer, applet_private->val_buffer_len, NULL, 0));
+        hex_dump(applet_private->val_buffer, applet_private->val_buffer_len));
 
     /* Inject Object ID */
     object_id[1] = i;
@@ -1681,7 +1681,7 @@ cac_new_ccc_applet_private(int cert_count)
     if (applet_private->tag_buffer_len == 0)
         goto failure;
     g_debug("%s: applet_private->tag_buffer = %s", __func__,
-        hex_dump(applet_private->tag_buffer, applet_private->tag_buffer_len, NULL, 0));
+        hex_dump(applet_private->tag_buffer, applet_private->tag_buffer_len));
 
     /* Value buffer */
     /* Ex:
@@ -1723,7 +1723,7 @@ cac_new_ccc_applet_private(int cert_count)
     if (applet_private->val_buffer_len == 0)
         goto failure;
     g_debug("%s: applet_private->val_buffer = %s", __func__,
-        hex_dump(applet_private->val_buffer, applet_private->val_buffer_len, NULL, 0));
+        hex_dump(applet_private->val_buffer, applet_private->val_buffer_len));
 
     /* Inject Object ID */
     tv_object[0].value.value = object_id;

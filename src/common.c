@@ -49,11 +49,16 @@ lebytes2ushort(const unsigned char *buf)
 }
 
 #define MAX_STATIC_BYTES 1024
-static char hexdump_buffer[5*MAX_STATIC_BYTES];
+static char hexdump_buffer[5*MAX_STATIC_BYTES + 1];
 /*
  * Creates printable representation in hexadecimal format of the data
  * provided in the  buf  buffer. A static buffer will be used, which
  * can hold up to 1024 bytes (longer will get truncated).
+ *
+ * The dumping loop will print 5 visible characters at a time, but since it's
+ * using sprintf, we also need to account for the '\0' it appends to the end of
+ * the string on the last iteration, or we'll overflow the buffer we are
+ * printing to.
  */
 char *
 hex_dump(const unsigned char *buf, size_t buflen)

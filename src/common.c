@@ -56,7 +56,7 @@ static char hexdump_buffer[5*MAX_STATIC_BYTES];
  * can hold up to 1024 bytes (longer will get truncated).
  */
 char *
-hex_dump(unsigned char *buf, size_t buflen)
+hex_dump(const unsigned char *buf, size_t buflen)
 {
     char *p, *start;
     size_t i;

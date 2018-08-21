@@ -2,7 +2,7 @@ image: fedora:latest
 
 before_script:
   - dnf update -y
-  - dnf install -y gcc automake libtool make pkgconfig autoconf-archive nss-devel glib2-devel opensc gnutls-utils nss-tools openssl softhsm lcov valgrind
+  - dnf install -y gcc automake libtool make pkgconfig autoconf-archive nss-devel glib2-devel opensc gnutls-utils nss-tools openssl softhsm lcov valgrind libasan
 
 Build:
   stage: build
@@ -28,6 +28,13 @@ Memcheck:
   script:
     - ./autogen.sh
     - make memcheck-local
+  allow_failure: true
+
+asan:
+  stage: test
+  script:
+    - ./autogen.sh
+    - make CFLAGS="-fsanitize=address" check
   allow_failure: true
 
 pages:

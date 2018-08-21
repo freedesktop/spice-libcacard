@@ -177,6 +177,7 @@ vcard_emul_delete_key(VCardKey *key)
     if (key->slot) {
         PK11_FreeSlot(key->slot);
     }
+    g_free(key);
 }
 
 /*

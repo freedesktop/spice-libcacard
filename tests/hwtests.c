@@ -295,11 +295,12 @@ static void test_sign_bad_data_x509(void)
     key_bits = getBits();
     /* Adjust the buffers to match the key lengths, if already retrieved */
     if (key_bits && key_bits < 2048) {
-        sign[4] = key_bits/8; /* less than 2048b will fit the length into one byte */
-        sign[5] = 0x00;
+        int payload_len = key_bits/8; /* RSA signature has the same length as the key */
+        sign[4] = payload_len; /* less than 2048b will fit the length into one byte */
+        sign[5] = 0x00; /* PKCS#1.5 padding first byte */
         /*sign[6] = 0x01; <- this should be 0x01 for PKCS#1.5 signatures */
-        memcpy(&sign[6], &sign[sign_len-key_bits/8 + 3], key_bits/8 - 1);
-        sign_len = 5 + key_bits/8 + 1;
+        memmove(&sign[6], &sign[sign_len - payload_len], payload_len - 1);
+        sign_len = 5 /* [APDU header] */ + payload_len + 1 /* [Le] */;
         sign[sign_len-1] = 0x00; /* [Le] */
     }
 

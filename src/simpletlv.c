@@ -294,9 +294,7 @@ simpletlv_clone(struct simpletlv_member *tlv, size_t tlvlen)
             if (new[i].value.child == NULL)
                 goto failure;
         } else {
-            new[i].value.value = g_new(unsigned char, tlv[i].length);
-            memcpy(new[i].value.value, tlv[i].value.value,
-                tlv[i].length);
+            new[i].value.value = g_memdup(tlv[i].value.value, tlv[i].length);
         }
     }
     return new;

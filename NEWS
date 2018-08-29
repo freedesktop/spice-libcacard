@@ -1,3 +1,9 @@
+v2.6.1
+======
+
+- various bug fixes (memory corruption issues which would cause crashes in
+  spice-gtk)
+
 v2.6.0
 ======
 

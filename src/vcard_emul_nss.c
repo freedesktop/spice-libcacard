@@ -21,7 +21,7 @@
 #include <nss.h>
 #include <pk11pub.h>
 #include <cert.h>
-#include <key.h>
+#include <keyhi.h>
 #include <secmod.h>
 #include <prthread.h>
 #include <secerr.h>

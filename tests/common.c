@@ -770,6 +770,10 @@ void check_login_count(void)
     };
     g_assert_nonnull(reader);
 
+    /* Make sure we reset the login state here */
+    vreader_power_off(reader);
+    vreader_power_on(reader, NULL, NULL);
+
     /* Skip the HW tests without physical card */
     if (isHWTests() && vreader_card_is_present(reader) != VREADER_OK) {
         vreader_free(reader);
@@ -783,8 +787,13 @@ void check_login_count(void)
                                pbRecvBuffer, &dwRecvLength);
     g_assert_cmpint(status, ==, VREADER_OK);
     /* NSS does not know how to do this yet */
-    g_assert_cmphex(pbRecvBuffer[0], ==, VCARD7816_SW1_P1_P2_ERROR);
-    g_assert_cmphex(pbRecvBuffer[1], ==, 0x88);
+    if (isHWTests()) { /* HW tests have PIN */
+        g_assert_cmphex(pbRecvBuffer[0], ==, VCARD7816_SW1_P1_P2_ERROR);
+        g_assert_cmphex(pbRecvBuffer[1], ==, 0x88);
+    } else { /* NSS softoken does not have passphrase so it is unlocked automatically */
+        g_assert_cmphex(pbRecvBuffer[0], ==, VCARD7816_SW1_SUCCESS);
+        g_assert_cmphex(pbRecvBuffer[1], ==, 0x00);
+    }
 
     /* P1 = 0x01 is invalid */
     login[2] = 0x01;

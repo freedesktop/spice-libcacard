@@ -127,6 +127,10 @@ static void do_login(VReader *reader)
         //0x37, 0x37, 0x37, 0x37, 0x37, 0x37, 0x37, 0x37
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
     };
+    uint8_t login_check[] = {
+        /* VERIFY   [p1,p2=0 ]  [Lc] */
+        0x00, 0x20, 0x00, 0x00, 0x00
+    };
     int login_len, pin_len;
 
     g_assert_nonnull(reader);
@@ -139,6 +143,14 @@ static void do_login(VReader *reader)
 
     status = vreader_xfr_bytes(reader,
                                login, login_len,
+                               pbRecvBuffer, &dwRecvLength);
+    g_assert_cmpint(status, ==, VREADER_OK);
+    g_assert_cmphex(pbRecvBuffer[0], ==, VCARD7816_SW1_SUCCESS);
+    g_assert_cmphex(pbRecvBuffer[1], ==, 0x00);
+
+    /* Check the login status now */
+    status = vreader_xfr_bytes(reader,
+                               login_check, sizeof(login_check),
                                pbRecvBuffer, &dwRecvLength);
     g_assert_cmpint(status, ==, VREADER_OK);
     g_assert_cmphex(pbRecvBuffer[0], ==, VCARD7816_SW1_SUCCESS);

@@ -475,9 +475,21 @@ static void do_login(VReader *reader)
         /* VERIFY   [p1,p2=0 ]  [Lc]  [empty pin padded to 6 chars     ] */
         0x00, 0x20, 0x00, 0x00, 0x06, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff
     };
+    uint8_t login_check[] = {
+        /* VERIFY   [p1,p2=0 ]  [Lc] */
+        0x00, 0x20, 0x00, 0x00, 0x00
+    };
     g_assert_nonnull(reader);
     status = vreader_xfr_bytes(reader,
                                login, sizeof(login),
+                               pbRecvBuffer, &dwRecvLength);
+    g_assert_cmpint(status, ==, VREADER_OK);
+    g_assert_cmphex(pbRecvBuffer[0], ==, VCARD7816_SW1_SUCCESS);
+    g_assert_cmphex(pbRecvBuffer[1], ==, 0x00);
+
+    /* Check the login status now */
+    status = vreader_xfr_bytes(reader,
+                               login_check, sizeof(login_check),
                                pbRecvBuffer, &dwRecvLength);
     g_assert_cmpint(status, ==, VREADER_OK);
     g_assert_cmphex(pbRecvBuffer[0], ==, VCARD7816_SW1_SUCCESS);

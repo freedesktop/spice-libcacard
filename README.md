@@ -6,7 +6,7 @@ This library provides emulation of smart cards to a virtual card
 reader running in a guest virtual machine.
 
 It implements DoD CAC standard with separate pki containers
-(compatible coolkey), using certificates read from NSS.
+(compatible with coolkey and OpenSC), using certificates read from NSS.
 
 For more information and API documentation, read the docs/libcacard.txt file.
 

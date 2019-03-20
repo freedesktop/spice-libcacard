@@ -361,6 +361,11 @@ and applet.
      This function reads generic data from underlying smart card by the label,
      if avaialble.
 
+         int vcard_emul_is_logged_in(VCard *card);
+
+     This function checks if the token is logged in or whether we need to ask
+     the client to authenticate.
+
 
 The sample card type emulator is found in cac.c. It implements the cac specific
 applets.  Only those applets needed by the coolkey pkcs#11 driver on the guest

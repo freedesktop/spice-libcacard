@@ -446,6 +446,32 @@ vcard_emul_login(VCard *card, unsigned char *pin, int pin_len)
     return VCARD7816_STATUS_ERROR_CONDITION_NOT_SATISFIED;
 }
 
+int
+vcard_emul_is_logged_in(VCard *card)
+{
+    PK11SlotInfo *slot;
+
+    if (!nss_emul_init) {
+        return VCARD7816_STATUS_ERROR_CONDITION_NOT_SATISFIED;
+    }
+
+    slot = vcard_emul_card_get_slot(card);
+     /* We depend on the PKCS #11 module internal login state here because we
+      * create a separate process to handle each guest instance. If we needed
+      * to handle multiple guests from one process, then we would need to keep
+      * a lot of extra state in our card structure
+      */
+
+    /* If we do not need log in, we present the token as "logged in" */
+    if (PK11_NeedLogin(slot) == PR_FALSE) {
+        return 1;
+    }
+
+    /* For the tokens that require login, delegate to NSS to figure out the
+     * login status */
+    return !!PK11_IsLoggedIn(slot, NULL);
+}
+
 void
 vcard_emul_logout(VCard *card)
 {

@@ -690,7 +690,12 @@ vcard7816_vm_process_apdu(VCard *card, VCardAPDU *apdu,
                             VCARD7816_STATUS_ERROR_WRONG_PARAMETERS);
         } else {
             if (apdu->a_Lc == 0) {
-                /* handle pin count if possible */
+                /* If we are already logged in, we should succeed just now */
+                if (vcard_emul_is_logged_in(card)) {
+                    *response = vcard_make_response(VCARD7816_STATUS_SUCCESS);
+                    break;
+                }
+                /* handle pin count if possible (not possible now) */
                 count = vcard_emul_get_login_count(card);
                 if (count < 0) {
                     *response = vcard_make_response(

@@ -608,6 +608,8 @@ vcard_emul_make_card(VReader *reader,
     VCardEmulType type;
     const char *params;
 
+    g_debug("%s: called", __func__);
+
     type = vcard_emul_get_type(reader);
 
     /* ignore the inserted card */
@@ -654,6 +656,8 @@ vcard_emul_mirror_card(VReader *vreader)
     PK11SlotInfo *slot;
     VCard *card;
 
+    g_debug("%s: called", __func__);
+
     slot = vcard_emul_reader_get_slot(vreader);
     if (slot == NULL) {
         return NULL;
@@ -682,6 +686,7 @@ vcard_emul_mirror_card(VReader *vreader)
         CERTCertificate *cert;
         SECStatus rv;
 
+        g_debug("%s: Found certificate", __func__);
         rv = PK11_ReadRawAttribute(PK11_TypeGeneric, thisObj,
                                    CKA_VALUE, &derCert);
         if (rv != SECSuccess) {
@@ -905,6 +910,8 @@ vcard_emul_init(const VCardEmulOptions *options)
     SECMODModuleList *mlp;
     int i;
 
+    g_debug("%s: called", __func__);
+
     if (vcard_emul_init_called) {
         return VCARD_EMUL_INIT_ALREADY_INITED;
     }
@@ -929,6 +936,7 @@ vcard_emul_init(const VCardEmulOptions *options)
             return VCARD_EMUL_FAIL;
         }
 
+        g_debug("%s: returning with passthrough initialized", __func__);
         return VCARD_EMUL_OK;
     }
 #endif
@@ -1018,6 +1026,7 @@ vcard_emul_init(const VCardEmulOptions *options)
     /* if we aren't suppose to use hw, skip looking up hardware tokens */
     if (!options->use_hw) {
         nss_emul_init = has_readers;
+        g_debug("%s: returning: Not using HW", __func__);
         return has_readers ? VCARD_EMUL_OK : VCARD_EMUL_FAIL;
     }
 
@@ -1040,6 +1049,7 @@ vcard_emul_init(const VCardEmulOptions *options)
             continue;
         }
 
+        g_debug("%s: Listing modules, trying %s", __func__, module->commonName);
         for (i = 0; i < module->slotCount; i++) {
             PK11SlotInfo *slot = module->slots[i];
 
@@ -1063,12 +1073,16 @@ vcard_emul_init(const VCardEmulOptions *options)
             vreader = vreader_new(PK11_GetSlotName(slot), vreader_emul,
                                   vreader_emul_delete);
             vreader_add_reader(vreader);
+            g_debug("%s: Added reader from slot %s", __func__,
+                    PK11_GetSlotName(slot));
 
             if (PK11_IsPresent(slot)) {
                 VCard *vcard;
                 vcard = vcard_emul_mirror_card(vreader);
                 vreader_insert_card(vreader, vcard);
                 vcard_emul_init_series(vreader, vcard);
+                g_debug("%s: Added card to the reader %s", __func__,
+                        vreader_get_name(vreader));
                 vcard_free(vcard);
             }
         }

@@ -259,6 +259,8 @@ vreader_xfr_bytes(VReader *reader,
     VCard *card = vreader_get_card(reader);
     int size;
 
+    g_debug("%s: called", __func__);
+
     if (card == NULL) {
         return VREADER_NO_CARD;
     }

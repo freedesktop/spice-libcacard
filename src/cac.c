@@ -2143,6 +2143,8 @@ cac_new_pki_applet(int i, const unsigned char *cert,
     unsigned char pki_aid[] = { 0xa0, 0x00, 0x00, 0x00, 0x79, 0x01, 0x00 };
     int pki_aid_len = sizeof(pki_aid);
 
+    g_debug("%s: called", __func__);
+
     pki_aid[pki_aid_len-1] = i;
 
     applet_private = cac_new_pki_applet_private(i, cert, cert_len, key);
@@ -2251,6 +2253,8 @@ cac_card_init(VReader *reader, VCard *card,
         {0x60, 0x30},
         {0x90, 0x00},
     };
+
+    g_debug("%s: called", __func__);
 
     /* CAC Cards are VM Cards */
     vcard_set_type(card, VCARD_VM);

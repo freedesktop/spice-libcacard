@@ -487,6 +487,8 @@ static PCSCContext context;
 
 int capcsc_init(void)
 {
+    g_debug("%s: called", __func__);
+
     g_mutex_init(&context.lock);
 
     if (init_pcsc(&context)) {

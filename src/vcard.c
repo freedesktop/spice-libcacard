@@ -141,6 +141,8 @@ vcard_new(VCardEmul *private, VCardEmulFree private_free)
 {
     VCard *new_card;
 
+    g_debug("%s: called", __func__);
+
     new_card = g_new0(VCard, 1);
     new_card->type = VCARD_VM;
     new_card->vcard_private = private;
@@ -204,6 +206,8 @@ vcard_set_atr_func(VCard *card, VCardGetAtr get_atr)
 VCardStatus
 vcard_add_applet(VCard *card, VCardApplet *applet)
 {
+    g_debug("%s: called", __func__);
+
     applet->next = card->applet_list;
     card->applet_list = applet;
     /* if our card-type is direct, always call the applet */

@@ -23,6 +23,8 @@ VCardStatus vcard_init(VReader *vreader, VCard *vcard,
 {
     int rv;
 
+    g_debug("%s: called", __func__);
+
     switch (type) {
     case VCARD_EMUL_NONE:
         break;

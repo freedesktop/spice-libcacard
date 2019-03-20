@@ -89,5 +89,7 @@ fi
 if [ ! -d "$NSSDB" ]; then
 	mkdir "$NSSDB"
 	modutil -create -dbdir "sql:$NSSDB" -force
-	modutil -add "SoftHSM PKCS#11" -dbdir "sql:$NSSDB" -libfile "$P11LIB" -force
+	# Do not add a softhsm2 to the nssdb if there is already p11-kit-proxy
+	modutil -list -dbdir "sql:$NSSDB" | grep "library name: p11-kit-proxy.so" || \
+		modutil -add "SoftHSM PKCS#11" -dbdir "sql:$NSSDB" -libfile "$P11LIB" -force
 fi

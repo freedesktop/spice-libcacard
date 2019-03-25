@@ -35,6 +35,10 @@ asan:
   script:
     - ./autogen.sh
     - make CFLAGS="-fsanitize=address" check
+  artifacts:
+    expire_in: '1 week'
+    paths:
+      - test-suite.log
   allow_failure: true
 
 pages:

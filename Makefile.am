@@ -75,8 +75,9 @@ endif
 tests/softhsm2.conf:
 	$(AM_V_GEN)(cd tests/ && $(abs_srcdir)/tests/setup-softhsm2.sh)
 
-clean-local:
+clean-local: code-coverage-clean
 	rm -rf tests/hwdb tests/tokens tests/softhsm2.conf
+distclean-local: code-coverage-dist-clean
 
 EXTRA_DIST += tests/setup-softhsm2.sh
 
@@ -118,18 +119,19 @@ tests_hwtests_LDADD =				\
 	$(NULL)
 tests_hwtests_DEPENDENCIES = tests/softhsm2.conf
 
-@CODE_COVERAGE_RULES@
+include $(top_srcdir)/aminclude_static.am
 
 AM_CPPFLAGS =					\
 	-DG_LOG_DOMAIN=\"libcacard\"		\
 	-DLIBCACARD_COMPILATION			\
 	$(CACARD_CFLAGS)			\
 	$(CODE_COVERAGE_CFLAGS)			\
+	$(CODE_COVERAGE_CPPFLAGS)		\
 	$(PCSC_CFLAGS)				\
 	$(WARN_CFLAGS)				\
 	-I$(srcdir)/src				\
 	$(NULL)
-AM_LDFLAGS = $(CODE_COVERAGE_LDFLAGS) $(WARN_LDFLAGS)
+AM_LDFLAGS = $(CODE_COVERAGE_LIBS) $(WARN_LDFLAGS)
 
 EXTRA_DIST +=					\
 	NEWS					\

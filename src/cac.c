@@ -518,7 +518,7 @@ cac_applet_pki_process_apdu(VCard *card, VCardAPDU *apdu,
 
         sign_buffer = g_realloc(pki_applet->sign_buffer,
                                 pki_applet->sign_buffer_len + size);
-        memcpy(sign_buffer+pki_applet->sign_buffer_len, apdu->a_body, size);
+        memcpy(sign_buffer + pki_applet->sign_buffer_len, apdu->a_body, size);
         size += pki_applet->sign_buffer_len;
         switch (apdu->a_p1) {
         case  0x80:
@@ -539,7 +539,7 @@ cac_applet_pki_process_apdu(VCard *card, VCardAPDU *apdu,
                 break;
             }
             *response = vcard_response_new(card, sign_buffer, size, apdu->a_Le,
-                                                     VCARD7816_STATUS_SUCCESS);
+                                           VCARD7816_STATUS_SUCCESS);
             if (*response == NULL) {
                 *response = vcard_make_response(
                                 VCARD7816_STATUS_EXC_ERROR_MEMORY_FAILURE);

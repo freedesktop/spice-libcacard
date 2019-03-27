@@ -492,7 +492,7 @@ cac_applet_pki_process_apdu(VCard *card, VCardAPDU *apdu,
     CACPKIAppletData *pki_applet;
     VCardAppletPrivate *applet_private;
     int size;
-    unsigned char *sign_buffer;
+    unsigned char *sign_buffer = NULL;
     bool retain_sign_buffer = FALSE;
     vcard_7816_status_t status;
     VCardStatus ret = VCARD_FAIL;

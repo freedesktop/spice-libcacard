@@ -260,6 +260,7 @@ cac_common_process_apdu(VCard *card, VCardAPDU *apdu, VCardResponse **response)
     unsigned int i;
 
     applet_private = vcard_get_current_applet_private(card, apdu->a_channel);
+    g_assert(applet_private);
 
     switch (apdu->a_ins) {
     case CAC_GET_PROPERTIES:
@@ -386,6 +387,7 @@ cac_common_process_apdu_read(VCard *card, VCardAPDU *apdu,
     int size, offset;
 
     applet_private = vcard_get_current_applet_private(card, apdu->a_channel);
+    g_assert(applet_private);
 
     switch (apdu->a_ins) {
     case CAC_READ_BUFFER:
@@ -841,8 +843,8 @@ static VCardAppletPrivate *
 cac_new_pki_applet_private(int i, const unsigned char *cert,
                            int cert_len, VCardKey *key)
 {
-    CACPKIAppletData *pki_applet_data;
-    VCardAppletPrivate *applet_private;
+    CACPKIAppletData *pki_applet_data = NULL;
+    VCardAppletPrivate *applet_private = NULL;
     int bits;
 
     /* PKI applet Properies ex.:
@@ -1457,7 +1459,7 @@ failure:
 static VCardAppletPrivate *
 cac_new_ccc_applet_private(int cert_count)
 {
-    VCardAppletPrivate *applet_private;
+    VCardAppletPrivate *applet_private = NULL;
 
     /* CCC applet Properties ex.:
      * 01  Tag: Applet Information
@@ -1799,8 +1801,8 @@ failure:
 static VCardAppletPrivate *
 cac_new_aca_applet_private(int cert_count)
 {
-    CACACAAppletData *aca_applet_data;
-    VCardAppletPrivate *applet_private;
+    CACACAAppletData *aca_applet_data = NULL;
+    VCardAppletPrivate *applet_private = NULL;
 
     /* ACA applet Properties ex.:
      * 01  Tag: Applet Information

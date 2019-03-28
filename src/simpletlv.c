@@ -300,11 +300,11 @@ simpletlv_clone(struct simpletlv_member *tlv, size_t tlvlen)
     return new;
 
 failure:
-    for (j = 0; j < i; i++) {
+    for (j = 0; j < i; j++) {
         if (tlv[i].type == SIMPLETLV_TYPE_COMPOUND) {
-            simpletlv_free(new[i].value.child, new[i].length);
+            simpletlv_free(new[j].value.child, new[j].length);
         } else {
-            g_free(new[i].value.value);
+            g_free(new[j].value.value);
         }
     }
     g_free(new);

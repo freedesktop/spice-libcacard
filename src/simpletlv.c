@@ -77,7 +77,7 @@ simpletlv_encode_internal(struct simpletlv_member *tlv, size_t tlv_len,
                           unsigned char **out, size_t outlen,
                           unsigned char **newptr, int buffer_type)
 {
-    unsigned char *tmp = NULL, *a = NULL, *p, *newp;
+    unsigned char *tmp = NULL, *a = NULL, *p = NULL, *newp = NULL;
     size_t tmp_len = 0, p_len, i;
     int expect_len = 0, rv;
 

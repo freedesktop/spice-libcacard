@@ -2,7 +2,7 @@ image: fedora:latest
 
 before_script:
   - dnf update -y
-  - dnf install -y gcc automake libtool make pkgconfig autoconf-archive nss-devel glib2-devel opensc gnutls-utils nss-tools openssl softhsm lcov valgrind libasan
+  - dnf install -y gcc automake libtool make pkgconfig autoconf-archive nss-devel glib2-devel opensc gnutls-utils nss-tools openssl softhsm lcov valgrind libasan clang
 
 Build:
   stage: build
@@ -35,6 +35,19 @@ asan:
   script:
     - ./autogen.sh
     - make CFLAGS="-fsanitize=address" check
+  artifacts:
+    expire_in: '1 week'
+    paths:
+      - test-suite.log
+  allow_failure: true
+
+clang:
+  stage: build
+  variables:
+    CC: clang
+  script:
+    - ./autogen.sh
+    - make
   artifacts:
     expire_in: '1 week'
     paths:

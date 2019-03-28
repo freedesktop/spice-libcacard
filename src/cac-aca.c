@@ -716,7 +716,7 @@ acr_applet_object_encode(const struct acr_object *object, unsigned char *out,
     *p++ = object->id[1];
     outlen -= 2;
     for (j = 0; j < object->num_ins; j++) {
-        if (outlen < 3)
+        if (outlen < 2)
             return NULL;
         *p++ = object->ins[j].code;
         *p++ = object->ins[j].config;

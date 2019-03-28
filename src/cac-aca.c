@@ -1046,7 +1046,7 @@ cac_aca_get_properties(size_t *properties_len)
  *  KeyIdOrReference
  */
 static VCardResponse *
-cac_aca_get_acr_response_extended(VCard *card, int Le, unsigned char *acrid)
+cac_aca_get_acr_response_extended(VCard *card, int Le)
 {
     size_t buffer_len;
     unsigned char *buffer = NULL, *p;
@@ -1139,7 +1139,7 @@ cac_aca_get_acr_response(VCard *card, int Le, unsigned char *acrid, int format)
     if (format == CAC_FORMAT_SIMPLETLV) {
         return cac_aca_get_acr_response_simpletlv(card, Le, acrid);
     } else {
-        return cac_aca_get_acr_response_extended(card, Le, acrid);
+        return cac_aca_get_acr_response_extended(card, Le);
     }
 }
 
@@ -1242,10 +1242,7 @@ failure:
  */
 static VCardResponse *
 cac_aca_get_applet_acr_response_extended(VCard *card, int Le,
-                                         unsigned int pki_applets,
-                                         unsigned char *aid,
-                                         unsigned int aid_len,
-                                         unsigned char *coid)
+                                         unsigned int pki_applets)
 {
     size_t buffer_len, i, j, plen;
     unsigned char *buffer = NULL, *p;
@@ -1309,7 +1306,7 @@ cac_aca_get_applet_acr_response(VCard *card, int Le, unsigned int pki_applets,
             pki_applets, aid, aid_len, coid);
     } else {
         return cac_aca_get_applet_acr_response_extended(card, Le,
-            pki_applets, aid, aid_len, coid);
+            pki_applets);
     }
 }
 

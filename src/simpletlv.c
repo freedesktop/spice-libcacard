@@ -342,7 +342,7 @@ simpletlv_parse(unsigned char *data, size_t data_len, size_t *outtlv_len)
     }
 
     *outtlv_len = tlv->len;
-    return (struct simpletlv_member *)g_array_free(tlv, FALSE);
+    return (struct simpletlv_member *)(void *)g_array_free(tlv, FALSE);
 }
 
 /* vim: set ts=4 sw=4 tw=0 noet expandtab: */

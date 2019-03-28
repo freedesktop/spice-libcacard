@@ -1992,6 +1992,11 @@ cac_new_empty_applet_private(unsigned char objects[][2], unsigned int objects_le
     applet_private->properties_len = properties_len;
     applet_private->long_properties_len = properties_len; /*TODO*/
     applet_private->properties = simpletlv_clone(properties, properties_len);
+
+    /* Avoid dangling pointers in the static structure */
+    properties[0].value.value = NULL;
+    properties[1].value.value = NULL;
+
     if (applet_private->properties == NULL)
         goto failure;
 

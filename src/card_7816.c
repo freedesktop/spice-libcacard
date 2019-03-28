@@ -564,7 +564,8 @@ vcard_make_response(vcard_7816_status_t status)
  * Add File card support here if you need it.
  */
 static VCardStatus
-vcard7816_file_system_process_apdu(VCard *card, VCardAPDU *apdu,
+vcard7816_file_system_process_apdu(G_GNUC_UNUSED VCard *card,
+                                   G_GNUC_UNUSED VCardAPDU *apdu,
                                    VCardResponse **response)
 {
     /* TODO: if we want to support a virtual file system card, we do it here.

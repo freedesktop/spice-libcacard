@@ -68,7 +68,7 @@ static void delete_reader_cb(VReaderEmul *ve)
     g_mutex_unlock(&r->context->lock);
 }
 
-static int new_reader(PCSCContext *pc, const char *name, DWORD state)
+static int new_reader(PCSCContext *pc, const char *name, G_GNUC_UNUSED DWORD state)
 {
     SCardReader *r;
     VReader *vreader;
@@ -284,7 +284,7 @@ static VCardStatus apdu_cb(VCard *card, VCardAPDU *apdu,
     return ret;
 }
 
-static VCardStatus reset_cb(VCard *card, int channel)
+static VCardStatus reset_cb(VCard *card, G_GNUC_UNUSED int channel)
 {
     SCardReader *r = (SCardReader *) vcard_get_private(card);
     LONG rc;
@@ -316,7 +316,7 @@ static void get_atr_cb(VCard *card, unsigned char *atr, int *atr_len)
     }
 }
 
-static void delete_card_cb(VCardEmul *ve)
+static void delete_card_cb(G_GNUC_UNUSED VCardEmul *ve)
 {
     fprintf(stderr, "TODO, got a delete_card_cb\n");
 }

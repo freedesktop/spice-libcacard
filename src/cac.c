@@ -2024,7 +2024,7 @@ failure:
 }
 
 static VCardAppletPrivate *
-cac_new_passthrough_applet_private(VCard *card, const char *label,
+cac_new_passthrough_applet_private(G_GNUC_UNUSED VCard *card, const char *label,
                                    const unsigned char *aid, unsigned int aid_len)
 {
     CACPTAppletData *pt_applet_data;
@@ -2240,8 +2240,7 @@ failure:
  * the rest are connected through function pointers.
  */
 VCardStatus
-cac_card_init(VReader *reader, VCard *card,
-              const char *params,
+cac_card_init(G_GNUC_UNUSED VReader *reader, VCard *card,
               unsigned char * const *cert,
               int cert_len[],
               VCardKey *key[] /* adopt the keys*/,

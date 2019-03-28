@@ -157,9 +157,7 @@ static void
 update_socket_watch(void);
 
 static gboolean
-do_socket_send(GIOChannel *source,
-               GIOCondition condition,
-               gpointer data)
+do_socket_send(GIOCondition condition)
 {
     gsize bw;
     GError *err = NULL;
@@ -183,7 +181,7 @@ do_socket_send(GIOChannel *source,
 }
 
 static gboolean
-socket_prepare_sending(gpointer user_data)
+socket_prepare_sending(G_GNUC_UNUSED gpointer user_data)
 {
     update_socket_watch();
 
@@ -224,13 +222,12 @@ static CompatGCond pending_reader_condition;
 
 #define MAX_ATR_LEN 40
 static gpointer
-event_thread(gpointer arg)
+event_thread(G_GNUC_UNUSED gpointer arg)
 {
     unsigned char atr[MAX_ATR_LEN];
     int atr_len;
     VEvent *event;
     unsigned int reader_id;
-
 
     while (1) {
         const char *reader_name;
@@ -379,8 +376,7 @@ enum {
 
 static gboolean
 do_socket_read(GIOChannel *source,
-               GIOCondition condition,
-               gpointer data)
+               GIOCondition condition)
 {
     int rv;
     int dwSendLength;
@@ -397,6 +393,8 @@ do_socket_read(GIOChannel *source,
     static gchar *buf;
     static gsize br, to_read;
     static int state = STATE_HEADER;
+
+    g_return_val_if_fail(condition & G_IO_IN, FALSE);
 
     if (state == STATE_HEADER && to_read == 0) {
         buf = (gchar *)&mhHeader;
@@ -552,17 +550,17 @@ do_socket_read(GIOChannel *source,
 static gboolean
 do_socket(GIOChannel *source,
           GIOCondition condition,
-          gpointer data)
+          G_GNUC_UNUSED gpointer data)
 {
     /* not sure if two watches work well with a single win32 sources */
     if (condition & G_IO_OUT) {
-        if (!do_socket_send(source, condition, data)) {
+        if (!do_socket_send(condition)) {
             return FALSE;
         }
     }
 
     if (condition & G_IO_IN) {
-        if (!do_socket_read(source, condition, data)) {
+        if (!do_socket_read(source, condition)) {
             return FALSE;
         }
     }
@@ -586,7 +584,7 @@ update_socket_watch(void)
 static gboolean
 do_command(GIOChannel *source,
            GIOCondition condition,
-           gpointer data)
+           G_GNUC_UNUSED gpointer data)
 {
     char *string;
     VCardEmulError error;

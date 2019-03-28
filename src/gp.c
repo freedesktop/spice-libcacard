@@ -75,7 +75,7 @@ gp_applet_container_process_apdu(VCard *card, VCardAPDU *apdu,
  * the rest are connected through function pointers.
  */
 VCardStatus
-gp_card_init(VReader *reader, VCard *card)
+gp_card_init(G_GNUC_UNUSED VReader *reader, VCard *card)
 {
     VCardApplet *applet;
 

@@ -29,8 +29,8 @@ VCardStatus vcard_init(VReader *vreader, VCard *vcard,
     case VCARD_EMUL_NONE:
         break;
     case VCARD_EMUL_CAC:
-        rv = cac_card_init(vreader, vcard, params,
-            cert, cert_len, key,  cert_count);
+        rv = cac_card_init(vreader, vcard,
+            cert, cert_len, key, cert_count);
         if (rv == VCARD_DONE)
             rv = gp_card_init(vreader, vcard);
         return rv;

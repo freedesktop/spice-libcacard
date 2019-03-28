@@ -73,7 +73,7 @@
  * Initialize the cac card. This is the only public function in this file. All
  * the rest are connected through function pointers.
  */
-VCardStatus cac_card_init(VReader *reader, VCard *card, const char *params,
+VCardStatus cac_card_init(VReader *reader, VCard *card,
               unsigned char * const *cert, int cert_len[],
               VCardKey *key[] /* adopt the keys*/,
               int cert_count);

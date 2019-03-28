@@ -85,12 +85,12 @@ simpletlv_encode_internal(struct simpletlv_member *tlv, size_t tlv_len,
     if (expect_len <= 0)
         return expect_len;
 
-    if (outlen == 0) {
+    if (outlen == 0 && out != NULL) {
         /* allocate a new buffer */
         a = g_malloc(expect_len);
         tmp = a;
         tmp_len = expect_len;
-    } else if ((int)outlen >= expect_len) {
+    } else if ((int)outlen >= expect_len && out != NULL) {
         tmp = *out;
         tmp_len = outlen;
     } else {

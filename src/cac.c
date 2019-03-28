@@ -280,6 +280,7 @@ cac_common_process_apdu(VCard *card, VCardAPDU *apdu, VCardResponse **response)
             /* If P1 = 0x00 cannot be supported by the smart card, SW1 = 0x6A and SW2 = 86. */
             *response = vcard_make_response(
                         VCARD7816_STATUS_ERROR_P1_P2_INCORRECT);
+            ret = VCARD_DONE;
             break;
         case 0x01:
             /* Get all the properties. */
@@ -293,6 +294,7 @@ cac_common_process_apdu(VCard *card, VCardAPDU *apdu, VCardResponse **response)
 
             *response = get_properties(card, applet_private->properties,
                 applet_private->properties_len, NULL, 0, apdu->a_Le);
+            ret = VCARD_DONE;
 
             break;
         case 0x02:
@@ -306,6 +308,7 @@ cac_common_process_apdu(VCard *card, VCardAPDU *apdu, VCardResponse **response)
             }
             *response = get_properties(card, applet_private->properties,
                 applet_private->properties_len, apdu->a_body, apdu->a_Lc, apdu->a_Le);
+            ret = VCARD_DONE;
             break;
         case 0x40:
             /* XXX This is undocumented P1 argument, which returns properties
@@ -313,15 +316,16 @@ cac_common_process_apdu(VCard *card, VCardAPDU *apdu, VCardResponse **response)
              */
             *response = get_properties(card, applet_private->properties,
                 applet_private->long_properties_len, NULL, 0, apdu->a_Le);
+            ret = VCARD_DONE;
             break;
         default:
             /* unknown params returns (SW1=0x6A, SW2=0x86) */
             *response = vcard_make_response(
                         VCARD7816_STATUS_ERROR_P1_P2_INCORRECT);
+            ret = VCARD_DONE;
             break;
         }
 
-        ret = VCARD_DONE;
         break;
     case VCARD7816_INS_SELECT_FILE:
         if (apdu->a_p1 != 0x02) {

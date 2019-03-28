@@ -1895,8 +1895,6 @@ cac_new_aca_applet_private(int cert_count)
     /* Create the private data structure */
     applet_private = g_new0(VCardAppletPrivate, 1);
     aca_applet_data = &(applet_private->u.aca_data);
-    if (applet_private == NULL)
-        goto failure;
 
     /* store the applet OID */
     applet_private->coids = g_malloc(sizeof(struct coid));
@@ -1912,12 +1910,6 @@ cac_new_aca_applet_private(int cert_count)
     aca_applet_data->pki_applets = cert_count;
 
     return applet_private;
-
-failure:
-    if (applet_private != NULL) {
-       cac_delete_aca_applet_private(applet_private);
-    }
-    return NULL;
 }
 
 static VCardAppletPrivate *
@@ -1988,8 +1980,6 @@ cac_new_empty_applet_private(unsigned char objects[][2], unsigned int objects_le
 
     /* Create the private data structure */
     applet_private = g_new0(VCardAppletPrivate, 1);
-    if (applet_private == NULL)
-        goto failure;
 
     /* Create Object ID list */
     applet_private->coids = g_malloc_n(objects_len, sizeof(struct coid));

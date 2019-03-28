@@ -2,7 +2,7 @@ image: fedora:latest
 
 before_script:
   - dnf update -y
-  - dnf install -y gcc automake libtool make pkgconfig autoconf-archive nss-devel glib2-devel opensc gnutls-utils nss-tools openssl softhsm lcov valgrind libasan clang
+  - dnf install -y gcc automake libtool make pkgconfig autoconf-archive nss-devel glib2-devel opensc gnutls-utils nss-tools openssl softhsm lcov valgrind libasan clang csbuild
 
 Build:
   stage: build
@@ -53,6 +53,15 @@ clang:
     paths:
       - test-suite.log
   allow_failure: true
+
+csbuild:
+  stage: test
+  script:
+    - csbuild
+      --prep-cmd="./autogen.sh"
+      --build-cmd "make clean && make"
+      --color
+      --print-current
 
 pages:
   stage: deploy

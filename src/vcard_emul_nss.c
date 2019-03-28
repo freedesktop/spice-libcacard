@@ -399,7 +399,7 @@ cleanup:
 /* return the number of login attempts still possible on the card. if unknown,
  * return -1 */
 int
-vcard_emul_get_login_count(VCard *card)
+vcard_emul_get_login_count(G_GNUC_UNUSED VCard *card)
 {
     return -1;
 }
@@ -488,7 +488,7 @@ vcard_emul_logout(VCard *card)
 }
 
 void
-vcard_emul_reset(VCard *card, VCardPower power)
+vcard_emul_reset(VCard *card, G_GNUC_UNUSED VCardPower power)
 {
     /*
      * if we reset the card (either power on or power off), we lose our login
@@ -607,7 +607,7 @@ static unsigned char *nss_atr;
 static int nss_atr_len;
 
 void
-vcard_emul_get_atr(VCard *card, unsigned char *atr, int *atr_len)
+vcard_emul_get_atr(G_GNUC_UNUSED VCard *card, unsigned char *atr, int *atr_len)
 {
     int len;
     assert(atr != NULL);
@@ -819,7 +819,7 @@ vcard_emul_event_thread(void *arg)
 
 /* if the card is inserted when we start up, make sure our state is correct */
 static void
-vcard_emul_init_series(VReader *vreader, VCard *vcard)
+vcard_emul_init_series(VReader *vreader, G_GNUC_UNUSED VCard *vcard)
 {
     VReaderEmul *vreader_emul = vreader_get_private(vreader);
     PK11SlotInfo *slot = vreader_emul->slot;
@@ -860,7 +860,7 @@ static const VCardEmulOptions default_options = {
  *  NULL.
  */
 static char *
-vcard_emul_get_password(PK11SlotInfo *slot, PRBool retries, void *pw_arg)
+vcard_emul_get_password(G_GNUC_UNUSED PK11SlotInfo *slot, PRBool retries, void *pw_arg)
 {
     /* if it didn't work the first time, don't keep trying */
     if (retries) {

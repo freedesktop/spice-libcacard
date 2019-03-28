@@ -17,7 +17,7 @@
 #include "glib-compat.h"
 
 VCardStatus vcard_init(VReader *vreader, VCard *vcard,
-                       VCardEmulType type, const char *params,
+                       VCardEmulType type, G_GNUC_UNUSED const char *params,
                        unsigned char *const *cert, int cert_len[],
                        VCardKey *key[], int cert_count)
 {
@@ -43,7 +43,7 @@ VCardStatus vcard_init(VReader *vreader, VCard *vcard,
     return VCARD_FAIL;
 }
 
-VCardEmulType vcard_emul_type_select(VReader *vreader)
+VCardEmulType vcard_emul_type_select(G_GNUC_UNUSED VReader *vreader)
 {
     /* return the default */
     return VCARD_EMUL_CAC;

@@ -12,6 +12,7 @@
 #include "vcard.h"
 #include "vcard_emul.h"
 #include "card_7816.h"
+#include "common.h"
 
 
 /* Global Platform Card Manager applet AID */
@@ -635,6 +636,7 @@ vcard7816_vm_process_apdu(VCard *card, VCardAPDU *apdu,
                             VCARD7816_STATUS_ERROR_FUNCTION_NOT_SUPPORTED);
             break;
         }
+        g_debug("%s: Selecting file %s", __func__, hex_dump(apdu->a_body, apdu->a_Lc));
 
         /* side effect, deselect the current applet if no applet has been found
          */

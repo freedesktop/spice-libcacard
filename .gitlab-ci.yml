@@ -2,7 +2,7 @@ image: fedora:latest
 
 before_script:
   - dnf update -y
-  - dnf install -y gcc automake libtool make pkgconfig autoconf-archive nss-devel glib2-devel opensc gnutls-utils nss-tools openssl softhsm lcov valgrind libasan clang csbuild
+  - dnf install -y gcc automake libtool make pkgconfig autoconf-archive nss-devel glib2-devel opensc gnutls-utils nss-tools openssl softhsm lcov valgrind libasan clang csbuild which
 
 Build:
   stage: build

@@ -14,6 +14,7 @@
 #include "vcard_emul_type.h"
 #include "cac.h"
 #include "gp.h"
+#include "msft.h"
 #include "glib-compat.h"
 
 VCardStatus vcard_init(VReader *vreader, VCard *vcard,
@@ -33,6 +34,8 @@ VCardStatus vcard_init(VReader *vreader, VCard *vcard,
             cert, cert_len, key, cert_count);
         if (rv == VCARD_DONE)
             rv = gp_card_init(vreader, vcard);
+        if (rv == VCARD_DONE)
+            rv = msft_card_init(vreader, vcard);
         return rv;
     /* add new ones here */
     case VCARD_EMUL_PASSTHRU:

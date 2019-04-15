@@ -494,6 +494,7 @@ src/vcard_emul_type.h - definitions for card type emulators.
 src/cac.c - card type emulator for CAC cards
 src/cac-aca.c - implementation of CAC's ACA applet related buffers
 src/gp.c - basic Global Platform card manager emulation
+src/msft.c - simple applet used for discovery process in Windows
 src/vcard_emul.h - virtual card emulator service definitions.
 src/vcard_emul_nss.c - virtual card emulator implementation for nss.
 src/vscclient.c - socket connection to guest qemu usb driver.

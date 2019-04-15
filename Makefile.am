@@ -9,6 +9,8 @@ libcacard_la_SOURCES =				\
 	src/cac-aca.h				\
 	src/gp.c				\
 	src/gp.h				\
+	src/msft.c				\
+	src/msft.h				\
 	src/capcsc.h				\
 	src/card_7816.c				\
 	src/common.c				\

@@ -685,6 +685,54 @@ static void test_gp_applet(void)
     vreader_free(reader); /* get by id ref */
 }
 
+static void test_msft_applet(void)
+{
+    int dwRecvLength = APDUBufSize;
+    VReaderStatus status;
+    uint8_t pbRecvBuffer[APDUBufSize];
+    uint8_t msft_aid[] = {
+       0xA0, 0x00, 0x00, 0x03, 0x97, 0x43, 0x49, 0x44, 0x5F, 0x01, 0x00
+    };
+    uint8_t getresp[] = {
+        /* Get Response (max we can get) */
+        0x00, 0xc0, 0x00, 0x00, 0x00
+    };
+    uint8_t getdata[] = {
+        /* Get Data (max we can get) */
+        0x00, 0xca, 0x7f, 0x68, 0x00
+    };
+    VReader *reader = vreader_get_reader_by_id(0);
+
+    /* select Microsoft PnP applet and wait for the response bytes */
+    select_aid_response(reader, msft_aid, sizeof(msft_aid), 0x11);
+
+    /* read the response from the card */
+    dwRecvLength = APDUBufSize;
+    status = vreader_xfr_bytes(reader,
+                               getresp, sizeof(getresp),
+                               pbRecvBuffer, &dwRecvLength);
+    g_assert_cmpint(status, ==, VREADER_OK);
+    g_assert_cmpint(dwRecvLength, >, 2);
+    g_assert_cmphex(pbRecvBuffer[dwRecvLength-2], ==, VCARD7816_SW1_SUCCESS);
+    g_assert_cmphex(pbRecvBuffer[dwRecvLength-1], ==, 0x00);
+
+    /* We made sure the selection of other applets does not return anything
+     * in select_aid()
+     */
+
+    /* ask the applet for our data */
+    dwRecvLength = APDUBufSize;
+    status = vreader_xfr_bytes(reader,
+                               getdata, sizeof(getdata),
+                               pbRecvBuffer, &dwRecvLength);
+    g_assert_cmpint(status, ==, VREADER_OK);
+    g_assert_cmpint(dwRecvLength, ==, 0x21);
+    g_assert_cmpint(pbRecvBuffer[dwRecvLength-2], ==, VCARD7816_SW1_SUCCESS);
+    g_assert_cmpint(pbRecvBuffer[dwRecvLength-1], ==, 0x00);
+
+    vreader_free(reader); /* get by id ref */
+}
+
 static void test_invalid_properties(void)
 {
     VReader *reader = vreader_get_reader_by_id(0);
@@ -1137,6 +1185,7 @@ int main(int argc, char *argv[])
     g_test_add_func("/libcacard/sign", test_sign);
     g_test_add_func("/libcacard/empty-applets", test_empty_applets);
     g_test_add_func("/libcacard/gp-applet", test_gp_applet);
+    g_test_add_func("/libcacard/msft-applet", test_msft_applet);
     g_test_add_func("/libcacard/invalid-properties-apdu", test_invalid_properties);
     g_test_add_func("/libcacard/invalid-select-apdu", test_invalid_select);
     g_test_add_func("/libcacard/invalid-instruction", test_invalid_instruction);

@@ -1030,8 +1030,7 @@ cac_new_pki_applet_private(int i, const unsigned char *cert,
     return applet_private;
 
 failure:
-    if (applet_private)
-        cac_delete_pki_applet_private(applet_private);
+    cac_delete_pki_applet_private(applet_private);
     return NULL;
 }
 
@@ -1760,9 +1759,7 @@ cac_new_ccc_applet_private(int cert_count)
     return applet_private;
 
 failure:
-    if (applet_private) {
-        cac_delete_ccc_applet_private(applet_private);
-    }
+    cac_delete_ccc_applet_private(applet_private);
     return NULL;
 }
 

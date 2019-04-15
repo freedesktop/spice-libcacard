@@ -650,7 +650,7 @@ static void test_gp_applet(void)
         0x00, 0xc0, 0x00, 0x00, 0x00
     };
     uint8_t getdata[] = {
-        /* Get Response (max we can get) */
+        /* Get Data (max we can get) */
         0x00, 0xca, 0x9f, 0x7f, 0x00
     };
     VReader *reader = vreader_get_reader_by_id(0);

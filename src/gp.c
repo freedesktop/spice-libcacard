@@ -36,14 +36,14 @@ static unsigned char gp_get_data[] = {
 
 static VCardStatus
 gp_applet_container_process_apdu(VCard *card, VCardAPDU *apdu,
-                                  VCardResponse **response)
+                                 VCardResponse **response)
 {
     VCardStatus ret = VCARD_FAIL;
     unsigned int tag;
 
     switch (apdu->a_ins) {
     case GP_GET_DATA:
-        /* GET DATA isntruction for tags:
+        /* GET DATA instruction for tags:
          * 00 66 (not found):
          * 9F 7F (len = 2D):
          *  9F 7F 2A 40 70 50 72 12 91 51 81 01 00 70 70 00
@@ -71,7 +71,7 @@ gp_applet_container_process_apdu(VCard *card, VCardAPDU *apdu,
 
 
 /*
- * Initialize the cac card. This is the only public function in this file. All
+ * Initialize the gp applet. This is the only public function in this file. All
  * the rest are connected through function pointers.
  */
 VCardStatus

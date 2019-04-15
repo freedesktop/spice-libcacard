@@ -663,8 +663,12 @@ vcard7816_vm_process_apdu(VCard *card, VCardAPDU *apdu,
                     sizeof(gp_response), apdu->a_Le, VCARD7816_STATUS_SUCCESS);
             } else {
                 unsigned char fci_template[] = {
-                    0x6F, 0x0B, 0x84, 0x07, 0xA0, 0x00, 0x00, 0x00,
-                    0x79, 0x03, 0x00, 0xA5, 0x00};
+                    0x6F, 0x0B, /* Outer lenght to be replaced later */
+                    0x84, 0x07, /* AID length to be replaced later */
+                    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, /* AID */
+                    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                    0xA5, 0x00}; /* The rest */
+                size_t fci_template_len = 6 + apdu->a_Lc;
                 /* with GSC-IS 2 applets, we do not need to return anything
                  * for select applet, but cards generally do, at least this
                  * FCI template stub:
@@ -675,10 +679,14 @@ vcard7816_vm_process_apdu(VCard *card, VCardAPDU *apdu,
                  *  A5 00 : Proprietary data
                  */
                 /* Insert the correct AID in the structure */
-                g_assert_cmpint(apdu->a_Lc, ==, 7);
+                g_assert_cmpint(fci_template_len, <=, sizeof(fci_template));
+                fci_template[1] = apdu->a_Lc + 4;
+                fci_template[3] = apdu->a_Lc;
                 memcpy(&fci_template[4], apdu->a_body, apdu->a_Lc);
+                fci_template[apdu->a_Lc + 4] = 0xA5;
+                fci_template[apdu->a_Lc + 5] = 0x00;
                 *response = vcard_response_new(card, fci_template,
-                    sizeof(fci_template), apdu->a_Le, VCARD7816_STATUS_SUCCESS);
+                    fci_template_len, apdu->a_Le, VCARD7816_STATUS_SUCCESS);
             }
         } else {
             /* the real CAC returns (SW1=0x6A, SW2=0x82) */

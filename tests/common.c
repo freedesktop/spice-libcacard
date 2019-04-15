@@ -64,15 +64,17 @@ int select_aid_response(VReader *reader, unsigned char *aid,
     int dwRecvLength = APDUBufSize;
     uint8_t pbRecvBuffer[APDUBufSize];
     uint8_t selfile[] = {
-        0x00, 0xa4, 0x04, 0x00, 0x07, 0xa0, 0x00, 0x00, 0x00, 0x79, 0x01, 0x00
+        0x00, 0xa4, 0x04, 0x00, 0x00, /* Data Len to be overwritten */
+        0xa0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, /* Data */
+        0xa0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
     };
-    size_t selfile_len = sizeof(selfile);
+    size_t selfile_len = 0;
 
-    g_assert_cmpint(aid_len, ==, 7);
+    selfile_len = 5 + aid_len;
+    g_assert_cmpint(selfile_len, <=, sizeof(selfile));
     memcpy(&selfile[5], aid, aid_len);
+    selfile[4] = aid_len;
 
-    g_debug("%s: Select applet with AID 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x",
-        __func__, aid[0], aid[1], aid[2], aid[3], aid[4], aid[5], aid[6]);
     g_assert_nonnull(reader);
     status = vreader_xfr_bytes(reader,
                                selfile, selfile_len,

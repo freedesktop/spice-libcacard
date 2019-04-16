@@ -1146,6 +1146,25 @@ static void test_passthrough_applet(void)
     vreader_free(reader); /* get by id ref */
 }
 
+#define MAX_ATR_LEN 100
+#define CAC_ATR "\x3B\x7A\x18\x00\x00\x73\x66\x74\x65\x20\x63\x64\x31\x34\x34"
+#define CAC_ATR_LEN (sizeof(CAC_ATR) - 1)
+static void test_atr(void)
+{
+    VReader *reader = vreader_get_reader_by_id(0);
+    unsigned char *atr = g_malloc0(MAX_ATR_LEN);
+    int atr_len = MAX_ATR_LEN;
+
+    /* Cycle off and on to get the ATR from the card */
+    vreader_power_off(reader);
+    vreader_power_on(reader, atr, &atr_len);
+
+    g_assert_cmpmem(atr, atr_len, CAC_ATR, CAC_ATR_LEN);
+
+    vreader_free(reader); /* get by id ref */
+    g_free(atr);
+}
+
 static void libcacard_finalize(void)
 {
     VReader *reader = vreader_get_reader_by_id(0);
@@ -1191,9 +1210,10 @@ int main(int argc, char *argv[])
     g_test_add_func("/libcacard/invalid-instruction", test_invalid_instruction);
     g_test_add_func("/libcacard/invalid-read-buffer", test_invalid_read_buffer);
     g_test_add_func("/libcacard/invalid-acr", test_invalid_acr);
+    g_test_add_func("/libcacard/get-atr", test_atr);
     /* Even without the card, the passthrough applets are present */
     g_test_add_func("/libcacard/passthrough-applet", test_passthrough_applet);
-    /* TODO: Card/reader resets + ATR tests */
+    /* TODO: Card/reader resets */
     g_test_add_func("/libcacard/remove", test_remove);
 
     ret = g_test_run();

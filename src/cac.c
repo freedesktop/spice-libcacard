@@ -26,6 +26,7 @@
 #include "cac-aca.h"
 #include "vcard.h"
 #include "vcard_emul.h"
+#include "vcardt_internal.h"
 #include "card_7816.h"
 #include "simpletlv.h"
 #include "common.h"
@@ -2233,6 +2234,27 @@ failure:
 }
 
 /*
+ * Get ATR of CAC card since some application might be picky about out
+ * virtual one
+ */
+static unsigned char cac_atr[] = {
+    /* The older CAC card from official CAC document */
+    0x3B, 0x7A, 0x18, 0x00, 0x00, 0x73, 0x66, 0x74, 0x65, 0x20, 0x63, 0x64, 0x31, 0x34, 0x34
+};
+static int cac_atr_len = sizeof(cac_atr);
+
+static void
+cac_get_atr(G_GNUC_UNUSED VCard *card, unsigned char *atr, int *atr_len)
+{
+    int len;
+    assert(atr != NULL);
+
+    len = MIN(cac_atr_len, *atr_len);
+    memcpy(atr, cac_atr, len);
+    *atr_len = len;
+}
+
+/*
  * Initialize the cac card. This is the only public function in this file. All
  * the rest are connected through function pointers.
  */
@@ -2388,6 +2410,9 @@ cac_card_init(G_GNUC_UNUSED VReader *reader, VCard *card,
     vcard_add_applet(card, applet);
 
     /* GP applet is created from vcard_emul_type() */
+
+    /* Modify ATR to match existing cards */
+    vcard_set_atr_func(card, cac_get_atr);
 
     return VCARD_DONE;
 

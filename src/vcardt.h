@@ -14,6 +14,8 @@
 #define MAX(x, y) ((x) > (y) ? (x) : (y))
 #endif
 
+#define VCARD_COMPAT_WINDOWS 0x01
+
 typedef struct VCardStruct VCard;
 typedef struct VCardAPDUStruct VCardAPDU;
 typedef struct VCardResponseStruct VCardResponse;

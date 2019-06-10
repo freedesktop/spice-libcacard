@@ -82,5 +82,9 @@ void vcard_set_buffer_response(VCard *card, VCardBufferResponse *buffer);
 VCardType vcard_get_type(VCard *card);
 /* get the private data */
 VCardEmul *vcard_get_private(VCard *card);
+/* Get remaining login count for the current card */
+int vcard_get_login_count(VCard *card);
+/* Set compat bits for the given cards. See VCARD_COMPAT_* options */
+void vcard_set_compat(VCard *card, unsigned int set);
 
 #endif

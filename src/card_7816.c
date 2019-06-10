@@ -707,7 +707,7 @@ vcard7816_vm_process_apdu(VCard *card, VCardAPDU *apdu,
                     break;
                 }
                 /* handle pin count if possible (not possible now) */
-                count = vcard_emul_get_login_count(card);
+                count = vcard_get_login_count(card);
                 if (count < 0) {
                     *response = vcard_make_response(
                                     VCARD7816_STATUS_ERROR_DATA_NOT_FOUND);

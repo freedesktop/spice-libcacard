@@ -48,6 +48,8 @@ msft_applet_container_process_apdu(VCard *card, VCardAPDU *apdu,
         /* Windows proprietary tag */
         tag = (apdu->a_p1 & 0xff) << 8 | (apdu->a_p2 & 0xff);
         if (tag == 0x7f68) {
+            /* Assuming the driver is on Windows */
+            vcard_set_compat(card, VCARD_COMPAT_WINDOWS);
             *response = vcard_response_new(card, msft_get_data,
                 sizeof(msft_get_data), apdu->a_Le, VCARD7816_STATUS_SUCCESS);
             ret = VCARD_DONE;

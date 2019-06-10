@@ -32,6 +32,7 @@ struct VCardStruct {
     VCardEmul *vcard_private;
     VCardEmulFree vcard_private_free;
     VCardGetAtr vcard_get_atr;
+    unsigned int compat;
 };
 
 VCardBufferResponse *
@@ -323,3 +324,23 @@ vcard_get_private(VCard *vcard)
     return vcard->vcard_private;
 }
 
+/* Get remaining login count for the current card */
+int
+vcard_get_login_count(VCard *card)
+{
+    int rv = vcard_emul_get_login_count(card);
+
+    /* Windows drivers are not very happy with the answer we can give here
+     * so lets assume the card still have all the attempts unlocked here */
+    if (rv == -1 && card->compat & VCARD_COMPAT_WINDOWS) {
+        return 3;
+    }
+    return rv;
+}
+
+/* Set compat bits for the given cards. See VCARD_COMPAT_* options */
+void
+vcard_set_compat(VCard *card, unsigned int set)
+{
+    card->compat |= set;
+}

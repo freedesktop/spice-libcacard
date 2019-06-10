@@ -325,6 +325,13 @@ and applet.
     current applet state in this data structure. Any certs and keys associated
     with a particular applet is also stored here.
 
+        int vcard_get_login_count(VCard *card);
+
+    This function returns the number of remaining login attempts for this
+    card with the help of the following function. This function takes into the
+    account compatibility bits and when the driver really expect some number
+    and we do not have a way how to provide accurate number, it returns 3.
+
         int vcard_emul_get_login_count(VCard *card);
 
     This function returns the number of remaining login attempts for this
@@ -365,6 +372,10 @@ and applet.
 
      This function checks if the token is logged in or whether we need to ask
      the client to authenticate.
+
+         int vcard_set_compat(VCard *card, unsigned int set);
+
+     Sets compatibility bits for the card. See VCARD_COMPAT_* constants.
 
 
 The sample card type emulator is found in cac.c. It implements the cac specific

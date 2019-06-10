@@ -33,6 +33,8 @@ struct VCardStruct {
     VCardEmulFree vcard_private_free;
     VCardGetAtr vcard_get_atr;
     unsigned int compat;
+    unsigned char serial[32]; /* SHA256 of the first certificate */
+    int serial_len;
 };
 
 VCardBufferResponse *
@@ -343,4 +345,21 @@ void
 vcard_set_compat(VCard *card, unsigned int set)
 {
     card->compat |= set;
+}
+
+/* Set card serial number */
+void
+vcard_set_serial(VCard *card, unsigned char *serial, size_t len)
+{
+    len = MIN(sizeof(card->serial), len);
+    memcpy(card->serial, serial, len);
+    card->serial_len = len;
+}
+
+unsigned char *
+vcard_get_serial(VCard *card, int *len)
+{
+    if (len != NULL)
+        *len = card->serial_len;
+    return card->serial;
 }

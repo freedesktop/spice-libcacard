@@ -25,6 +25,9 @@
 #include <secmod.h>
 #include <prthread.h>
 #include <secerr.h>
+#include <secoid.h>
+#include <secmodt.h>
+#include <sechash.h>
 
 #include "glib-compat.h"
 
@@ -620,6 +623,30 @@ vcard_emul_get_atr(G_GNUC_UNUSED VCard *card, unsigned char *atr, int *atr_len)
     *atr_len = len;
 }
 
+static SECStatus
+vcard_emul_create_serial(VCard *card, unsigned char *data, int len)
+{
+    HASH_HashType hashType;
+    HASHContext *hashContext = NULL;
+    unsigned char digest[32];
+    unsigned int digestLen = 0;
+
+    hashType = HASH_GetHashTypeByOidTag(SEC_OID_SHA256);
+    hashContext = HASH_Create(hashType);
+    if (hashContext == NULL) {
+        return SECFailure;
+    }
+
+    HASH_Begin(hashContext);
+    HASH_Update(hashContext, data, len);
+    HASH_End(hashContext, digest, &digestLen, 32);
+    HASH_Destroy(hashContext);
+
+    vcard_set_serial(card, digest, (size_t) digestLen);
+
+    return SECSuccess;
+}
+
 /*
  * create a new card from certs and keys
  */
@@ -659,6 +686,11 @@ vcard_emul_make_card(VReader *reader,
         vcard_emul_delete_card(vcard_emul);
         return NULL;
     }
+
+    if (cert_count > 0) {
+        vcard_emul_create_serial(vcard, certs[0], cert_len[0]);
+    }
+
     vcard_init(reader, vcard, type, params, certs, cert_len, keys, cert_count);
     return vcard;
 }

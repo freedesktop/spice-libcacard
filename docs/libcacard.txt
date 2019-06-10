@@ -373,10 +373,21 @@ and applet.
      This function checks if the token is logged in or whether we need to ask
      the client to authenticate.
 
-         int vcard_set_compat(VCard *card, unsigned int set);
+         void vcard_set_compat(VCard *card, unsigned int set);
 
      Sets compatibility bits for the card. See VCARD_COMPAT_* constants.
 
+         void vcard_set_serial(VCard *card, unsigned char *serial, size_t len);
+
+     Sets smart card serial number to be used in internal structures or in
+     other applets.
+
+         unsigned char *vcard_get_serial(VCard *card, int *len);
+
+     Returns previously set smart card unique serial number to be used in
+     smart card internal structures. If the len argument is not null, the
+     serial number length is returned through this argument (is set to 0
+     if no serial number was set before).
 
 The sample card type emulator is found in cac.c. It implements the cac specific
 applets.  Only those applets needed by the coolkey pkcs#11 driver on the guest

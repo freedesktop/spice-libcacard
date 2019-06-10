@@ -86,5 +86,10 @@ VCardEmul *vcard_get_private(VCard *card);
 int vcard_get_login_count(VCard *card);
 /* Set compat bits for the given cards. See VCARD_COMPAT_* options */
 void vcard_set_compat(VCard *card, unsigned int set);
+/* Set custom serial number of the card which might be used in some structures */
+void vcard_set_serial(VCard *card, unsigned char *serial, size_t len);
+/* Get serial number of the card that was previously set (otherwise is empty) */
+unsigned char *vcard_get_serial(VCard *card, int *len);
+
 
 #endif

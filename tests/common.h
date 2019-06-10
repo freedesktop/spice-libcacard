@@ -46,6 +46,8 @@ void test_get_response(void);
 
 void check_login_count(void);
 
+void test_msft_applet(void);
+
 int isHWTests(void);
 void setHWTests(int);
 

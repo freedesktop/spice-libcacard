@@ -809,6 +809,88 @@ void check_login_count(void)
     vreader_free(reader);
 }
 
+void test_msft_applet(void)
+{
+    int dwRecvLength = APDUBufSize;
+    VReaderStatus status;
+    uint8_t pbRecvBuffer[APDUBufSize];
+    uint8_t msft_aid[] = {
+       0xA0, 0x00, 0x00, 0x03, 0x97, 0x43, 0x49, 0x44, 0x5F, 0x01, 0x00
+    };
+    uint8_t getresp[] = {
+        /* Get Response (max we can get) */
+        0x00, 0xc0, 0x00, 0x00, 0x00
+    };
+    uint8_t getdata[] = {
+        /* Get Data (max we can get) */
+        0x00, 0xca, 0x7f, 0x68, 0x00
+    };
+    uint8_t login[] = {
+        /* VERIFY   [p1,p2=0 ]  [Lc] */
+        0x00, 0x20, 0x00, 0x00, 0x00
+    };
+    VReader *reader = vreader_get_reader_by_id(0);
+
+    g_assert_nonnull(reader);
+
+    /* Make sure we reset the login state here */
+    vreader_power_off(reader);
+    vreader_power_on(reader, NULL, NULL);
+
+    /* Skip the HW tests without physical card */
+    if (isHWTests() && vreader_card_is_present(reader) != VREADER_OK) {
+        vreader_free(reader);
+        g_test_skip("No physical card found");
+        return;
+    }
+
+
+    /* select Microsoft PnP applet and wait for the response bytes */
+    select_aid_response(reader, msft_aid, sizeof(msft_aid), 0x11);
+
+    /* read the response from the card */
+    dwRecvLength = APDUBufSize;
+    status = vreader_xfr_bytes(reader,
+                               getresp, sizeof(getresp),
+                               pbRecvBuffer, &dwRecvLength);
+    g_assert_cmpint(status, ==, VREADER_OK);
+    g_assert_cmpint(dwRecvLength, >, 2);
+    g_assert_cmphex(pbRecvBuffer[dwRecvLength-2], ==, VCARD7816_SW1_SUCCESS);
+    g_assert_cmphex(pbRecvBuffer[dwRecvLength-1], ==, 0x00);
+
+    /* We made sure the selection of other applets does not return anything
+     * in select_aid()
+     */
+
+    /* ask the applet for our data */
+    dwRecvLength = APDUBufSize;
+    status = vreader_xfr_bytes(reader,
+                               getdata, sizeof(getdata),
+                               pbRecvBuffer, &dwRecvLength);
+    g_assert_cmpint(status, ==, VREADER_OK);
+    g_assert_cmpint(dwRecvLength, ==, 0x21);
+    g_assert_cmpint(pbRecvBuffer[dwRecvLength-2], ==, VCARD7816_SW1_SUCCESS);
+    g_assert_cmpint(pbRecvBuffer[dwRecvLength-1], ==, 0x00);
+
+    /* The above should have triggered the compat bits to return remaining 3 PIN attempts */
+    /* Get login count */
+    status = vreader_xfr_bytes(reader,
+                               login, sizeof(login),
+                               pbRecvBuffer, &dwRecvLength);
+    g_assert_cmpint(status, ==, VREADER_OK);
+    if (isHWTests()) { /* HW tests have PIN and we assume there are still three attempts */
+        g_assert_cmphex(pbRecvBuffer[0], ==, VCARD7816_SW1_WARNING_CHANGE);
+        g_assert_cmphex(pbRecvBuffer[1], ==, 0xc3);
+    } else { /* NSS softoken does not have passphrase so it is unlocked automatically */
+        g_assert_cmphex(pbRecvBuffer[0], ==, VCARD7816_SW1_SUCCESS);
+        g_assert_cmphex(pbRecvBuffer[1], ==, 0x00);
+    }
+
+
+
+    vreader_free(reader); /* get by id ref */
+}
+
 
 int
 isHWTests(void)

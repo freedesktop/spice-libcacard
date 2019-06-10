@@ -24,14 +24,42 @@
 static unsigned char gp_container_aid[] = {
     0xa0, 0x00, 0x00, 0x00, 0x03, 0x00, 0x00 };
 
-/* Data returned for Get Data Instruction */
-static unsigned char gp_get_data[] = {
-    0x9F, 0x7F, 0x2A, 0x40, 0x70, 0x50, 0x72, 0x12,
-    0x91, 0x51, 0x81, 0x01, 0x00, 0x70, 0x70, 0x00,
-    0x00, 0x58, 0xBD, 0x36, 0x0E, 0x40, 0x82, 0x70,
-    0x90, 0x12, 0x93, 0x70, 0x90, 0x04, 0x44, 0x72,
-    0x00, 0x00, 0x01, 0x00, 0x40, 0x04, 0x45, 0x84,
-    0x00, 0x00, 0x2C, 0x19, 0xB5
+/* CPLC (card production life cycle) data
+ * from: https://sourceforge.net/p/globalplatform/wiki/GPShell/
+ */
+static unsigned char cplp_data[] = {
+    0x9F, 0x7F, 0x2A, /* Tag, length */
+    0x00, 0x05, /* IC Fabricator */
+    0x00, 0x45, /* IC Type */
+    0xD0, 0x01, /* Operating System ID */
+    0x40, 0x21, /* Operating System release date 21. 1. 2014 */
+    0x01, 0x01, /* Operating System release level */
+    0x07, 0x4F, /* IC Fabrication Date ??? */
+    0x00, 0x19, 0x00, 0x52, /* IC Serial Number */
+    0x89, 0x0E, /* IC Batch Identifier */
+    0x47, 0x92, /* IC Module Fabricator */
+    0x72, 0x05, /* IC Module Packaging Date 205th day of 2017 */
+    0x16, 0x73, /* ICC Manufacturer */
+    0x72, 0x05, /* IC Embedding Date 205th day of 2017 */
+    0x16, 0x74, /* IC Pre-Personalizer */
+    0x72, 0x05, /* IC Pre-Perso. Equipment Date 205th day of 2017 */
+    0x00, 0x00, 0x0A, 0x40, /* IC Pre-Perso. Equipment ID */
+    0x00, 0x00, /* IC Personalizer */
+    0x00, 0x00, /* IC Personalization Date */
+    0x00, 0x09, 0x29, 0xBB, /* IC Perso. Equipment ID */
+};
+
+/* Card Recognition Data returned for Get Data Instruction */
+static unsigned char card_recognition_data[] = {
+    0x66, 0x31, /* Card Data tag, length */
+      0x73, 0x2F, /* OID for Card Recognition Data */
+        0x06, 0x07, 0x2A, 0x86, 0x48, 0x86, 0xFC, 0x6B, 0x01,
+        0x60, 0x0C, /* OID for Card Management Type and Version */
+          0x06, 0x0A, 0x2A, 0x86, 0x48, 0x86, 0xFC, 0x6B, 0x02, 0x02, 0x02, 0x01,
+        0x63, 0x09, /* OID for Card Identification Scheme */
+          0x06, 0x07, 0x2A, 0x86, 0x48, 0x86, 0xFC, 0x6B, 0x03,
+        0x64, 0x0B, /* OID for Secure Channel Protocol of the Issuer Security Domain and its implementation options */
+          0x06, 0x09, 0x2A, 0x86, 0x48, 0x86, 0xFC, 0x6B, 0x04, 0x03, 0x10,
 };
 
 static VCardStatus
@@ -44,16 +72,29 @@ gp_applet_container_process_apdu(VCard *card, VCardAPDU *apdu,
     switch (apdu->a_ins) {
     case GP_GET_DATA:
         /* GET DATA instruction for tags:
-         * 00 66 (not found):
-         * 9F 7F (len = 2D):
-         *  9F 7F 2A 40 70 50 72 12 91 51 81 01 00 70 70 00
-         *  00 58 BD 36 0E 40 82 70 90 12 93 70 90 04 44 72
-         *  00 00 01 00 40 04 45 84 00 00 2C 19 B5
+         * P1|P2: 00 66 (len = 4E):
+         * P1|P2: 9F 7F (len = 2D):
          */
         tag = (apdu->a_p1 & 0xff) << 8 | (apdu->a_p2 & 0xff);
         if (tag == 0x9f7f) {
-            *response = vcard_response_new(card, gp_get_data,
-                sizeof(gp_get_data), apdu->a_Le, VCARD7816_STATUS_SUCCESS);
+            int len = 0;
+            unsigned char *serial = vcard_get_serial(card, &len);
+            /* Some of the fields should not be static and should identify
+             * unique card (usually for caching and speedup in drivers).
+             * One of these fields we can use is IC Serial (4B)
+             * and IC Batch (2B). We could use more, but this should ge good
+             * enough for distinguishing few cards */
+            if (len > 0) {
+                memcpy(cplp_data + 15, serial, 6);
+            }
+
+            *response = vcard_response_new(card, cplp_data,
+                sizeof(cplp_data), apdu->a_Le, VCARD7816_STATUS_SUCCESS);
+            ret = VCARD_DONE;
+            break;
+        } else if (tag == 0x0066) {
+            *response = vcard_response_new(card, card_recognition_data,
+                sizeof(card_recognition_data), apdu->a_Le, VCARD7816_STATUS_SUCCESS);
             ret = VCARD_DONE;
             break;
         }

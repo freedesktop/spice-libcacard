@@ -695,15 +695,6 @@ cac_applet_aca_process_apdu(VCard *card, VCardAPDU *apdu,
         }
         ret = VCARD_DONE;
         break;
-    /* XXX unknown APDU from ActivClient after PIN verification */
-    case 0x5A:
-        /* ???
-         * 80 5A 00 00 00
-         * HW response: 90 00
-         */
-        *response = vcard_make_response(VCARD7816_STATUS_SUCCESS);
-        ret = VCARD_DONE;
-        break;
     default:
         ret = cac_common_process_apdu(card, apdu, response);
         break;

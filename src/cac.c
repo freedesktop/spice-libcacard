@@ -1972,8 +1972,7 @@ cac_new_empty_applet_private(unsigned char objects[][2], unsigned int objects_le
 
     /* Create Object ID list */
     if (objects_len > 0) {
-        applet_private->coids = g_malloc_n(objects_len, sizeof(struct coid));
-        memcpy(applet_private->coids, objects, 2*objects_len);
+        applet_private->coids = g_memdup(objects, sizeof(struct coid) * objects_len);
         applet_private->coids_len = objects_len;
     }
 

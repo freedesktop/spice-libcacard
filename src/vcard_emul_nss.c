@@ -52,7 +52,6 @@ typedef enum {
 struct VCardKeyStruct {
     CERTCertificate *cert;
     PK11SlotInfo *slot;
-    SECKEYPrivateKey *key;
     VCardEmulTriState failedX509;
 };
 
@@ -155,10 +154,6 @@ vcard_emul_make_key(PK11SlotInfo *slot, CERTCertificate *cert)
     key = g_new(VCardKey, 1);
     key->slot = PK11_ReferenceSlot(slot);
     key->cert = CERT_DupCertificate(cert);
-    /* NOTE: if we aren't logged into the token, this could return NULL */
-    /* NOTE: the cert is a temp cert, not necessarily the cert in the token,
-     * use the DER version of this function */
-    key->key = PK11_FindKeyByDERCert(slot, cert, NULL);
     key->failedX509 = VCardEmulUnknown;
     return key;
 }
@@ -169,10 +164,6 @@ vcard_emul_delete_key(VCardKey *key)
 {
     if (!nss_emul_init || (key == NULL)) {
         return;
-    }
-    if (key->key) {
-        SECKEY_DestroyPrivateKey(key->key);
-        key->key = NULL;
     }
     if (key->cert) {
         CERT_DestroyCertificate(key->cert);
@@ -189,12 +180,8 @@ vcard_emul_delete_key(VCardKey *key)
 static SECKEYPrivateKey *
 vcard_emul_get_nss_key(VCardKey *key)
 {
-    if (key->key) {
-        return key->key;
-    }
     /* NOTE: if we aren't logged into the token, this could return NULL */
-    key->key = PK11_FindPrivateKeyFromCert(key->slot, key->cert, NULL);
-    return key->key;
+    return PK11_FindPrivateKeyFromCert(key->slot, key->cert, NULL);
 }
 
 /*

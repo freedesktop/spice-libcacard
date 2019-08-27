@@ -339,6 +339,26 @@ static void test_sign_bad_data_x509(void)
     vreader_free(reader); /* get by id ref */
 }
 
+/* This is a regression test for issues with PKCS#11 tokens
+ * invalidating object handles after logout (such as softhsm).
+ * See: https://bugzilla.mozilla.org/show_bug.cgi?id=1576642
+ */
+static void test_sign_logout_sign(void)
+{
+    VReader *reader = vreader_get_reader_by_id(0);
+
+    g_assert_nonnull(reader);
+
+    test_login();
+    test_sign();
+
+    /* This implicitly logs out the user */
+    test_login();
+    test_sign();
+
+    vreader_free(reader); /* get by id ref */
+}
+
 static void libcacard_finalize(void)
 {
     VReader *reader = vreader_get_reader_by_id(0);
@@ -374,6 +394,7 @@ int main(int argc, char *argv[])
     g_test_add_func("/hw-tests/sign-bad-data", test_sign_bad_data_x509);
     g_test_add_func("/hw-tests/empty-applets", test_empty_applets);
     g_test_add_func("/hw-tests/get-response", test_get_response);
+    g_test_add_func("/hw-tests/sign-logout-sign", test_sign_logout_sign);
 
     ret = g_test_run();
 

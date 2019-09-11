@@ -60,7 +60,7 @@ struct acr_entry {
     struct acr_access_method access_methods[MAX_ACCESS_METHODS];
 };
 struct acr_table {
-    unsigned int num_entries;
+    unsigned char num_entries;
     struct acr_entry entries[];
 };
 

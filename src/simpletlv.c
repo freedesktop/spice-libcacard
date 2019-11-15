@@ -82,6 +82,8 @@ simpletlv_encode_internal(struct simpletlv_member *tlv, size_t tlv_len,
     int expect_len = 0, rv;
 
     expect_len = simpletlv_get_length(tlv, tlv_len, buffer_type);
+    if (expect_len == 0 && newptr != NULL && out != NULL)
+        *newptr = *out; /* Corner case for zero-length values */
     if (expect_len <= 0)
         return expect_len;
 

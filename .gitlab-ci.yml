@@ -34,6 +34,7 @@ asan:
   stage: test
   variables:
     ASAN_OPTIONS: fast_unwind_on_malloc=false
+    LSAN_OPTIONS: suppressions=suppr.txt
   script:
     - ./autogen.sh
     - make CFLAGS="-fsanitize=address" check || (cat test-suite.log && exit 1)
@@ -41,7 +42,6 @@ asan:
     expire_in: '1 week'
     paths:
       - test-suite.log
-  allow_failure: true
 
 clang:
   stage: build

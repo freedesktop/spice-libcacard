@@ -866,6 +866,10 @@ main(
     if (emul_args) {
         command_line_options = vcard_emul_options(emul_args);
     }
+    if (cert_count > 0) {
+        g_free(emul_args);
+        emul_args = NULL;
+    }
 
     qemu_host = g_strdup(argv[argc - 2]);
     qemu_port = g_strdup(argv[argc - 1]);

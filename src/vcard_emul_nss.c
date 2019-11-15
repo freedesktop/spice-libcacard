@@ -263,7 +263,8 @@ vcard_emul_rsa_op(VCard *card, VCardKey *key,
      */
     signature_len = PK11_SignatureLen(priv_key);
     if ((unsigned)buffer_size != signature_len) {
-        return  VCARD7816_STATUS_ERROR_DATA_INVALID;
+        ret = VCARD7816_STATUS_ERROR_DATA_INVALID;
+        goto cleanup;
     }
     /* be able to handle larger keys if necessary */
     bp = &buf[0];
@@ -380,6 +381,7 @@ cleanup:
     if (bp != buf) {
         g_free(bp);
     }
+    SECKEY_DestroyPrivateKey(priv_key);
     return ret;
 }
 

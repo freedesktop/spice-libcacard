@@ -32,9 +32,11 @@ Memcheck:
 
 asan:
   stage: test
+  variables:
+    ASAN_OPTIONS: fast_unwind_on_malloc=false
   script:
     - ./autogen.sh
-    - make CFLAGS="-fsanitize=address" check
+    - make CFLAGS="-fsanitize=address" check || (cat test-suite.log && exit 1)
   artifacts:
     expire_in: '1 week'
     paths:

@@ -17,7 +17,7 @@ has been preserved and it inherits the tags and version.
 
 # Authors
 
-This project was originally developped by:
+This project was originally developed by:
 
 - Alon Levy <alevy@redhat.com>
 - Robert Relyea <rrelyea@redhat.com>

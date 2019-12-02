@@ -1,4 +1,7 @@
-# libcacard  [![pipeline status](https://gitlab.freedesktop.org/spice/libcacard/badges/master/pipeline.svg)](https://gitlab.freedesktop.org/spice/libcacard/commits/master) [![coverage report](https://gitlab.freedesktop.org/spice/libcacard/badges/master/coverage.svg)](https://gitlab.freedesktop.org/spice/libcacard/commits/master)
+# libcacard
+[![pipeline status](https://gitlab.freedesktop.org/spice/libcacard/badges/master/pipeline.svg)](https://gitlab.freedesktop.org/spice/libcacard/commits/master)
+[![coverage report](https://gitlab.freedesktop.org/spice/libcacard/badges/master/coverage.svg)](https://gitlab.freedesktop.org/spice/libcacard/commits/master)
+[![cii best practices](https://bestpractices.coreinfrastructure.org/projects/3465/badge)](https://bestpractices.coreinfrastructure.org/en/projects/3465)
 
 CAC (Common Access Card) library
 

@@ -8,7 +8,79 @@ reader running in a guest virtual machine.
 It implements DoD CAC standard with separate pki containers
 (compatible with coolkey and OpenSC), using certificates read from NSS.
 
-For more information and API documentation, read the docs/libcacard.txt file.
+# Documentation
+
+The API documentation is available in
+[docs/libcacard.txt](https://gitlab.freedesktop.org/spice/libcacard/blob/master/docs/libcacard.txt)
+file.
+
+The libcacard is internally used by spice to emulate and share smart cards
+from client system to local or remote VMs. The whole integration image of
+smart card sharing can look like this:
+
+```
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~                       ~~~~~~~~~~~~~~~~~~~~
+~                                                 ~                       ~                  ~
+~   +-----+                                       ~                       ~                  ~
+~   |     |                   Client              ~                       ~      Server      ~
+~   |Smart|                                       ~                       ~                  ~
+~ +-|Card |-+                                     ~                       ~                  ~
+~ | |     | |                                     ~                       ~ +--------------+ ~
+~ | ------- |                                     ~                       ~ |      VM      | ~
+~ |  Reader |                                     ~                       ~ | +---------+  | ~
+~ +---------+                                     ~                       ~ | | virtual |  | ~
+~      |                                          ~                       ~ | |  CCID   |  | ~
+~      |                                          ~                       ~ | | device  |  | ~
+~ +---------+  +--------+  +-----+  +-----------+ ~                       ~ | +---------+  | ~
+~ |  pcscd  |--| OpenSC |--| NSS |--| libcacard | ~                       ~ |   qemu-kvm   | ~
+~ +---------+  +--------+  +-----+  +-----------+ ~                       ~ +--------------+ ~
+~                                         |       ~                       ~      |           ~
+~                                         |       ~                       ~      |           ~
+~             +---------------+  +--------------+ ~                       ~ +--------------+ ~
+~             | remote-viewer |--| spice-client | ~ <=[ spice channel ]=> ~ | spice-server | ~
+~             +---------------+  +--------------+ ~                       ~ +--------------+ ~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~                       ~~~~~~~~~~~~~~~~~~~~
+```
+
+In case of smart card emulation, the client side smart card stack is not needed:
+```
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~                       ~~~~~~~~~~~~~~~~~~~~
+~                                     ~                       ~                  ~
+~                 Client              ~                       ~      Server      ~
+~                                     ~                       ~                  ~
+~                                     ~                       ~ +--------------+ ~
+~                                     ~                       ~ |      VM      | ~
+~                                     ~                       ~ | +---------+  | ~
+~                                     ~                       ~ | | virtual |  | ~
+~                                     ~                       ~ | |  CCID   |  | ~
+~                                     ~                       ~ | | device  |  | ~
+~              +-----+  +-----------+ ~                       ~ | +---------+  | ~
+~              | NSS |--| libcacard | ~                       ~ |   qemu-kvm   | ~
+~              +-----+  +-----------+ ~                       ~ +--------------+ ~
+~                             |       ~                       ~      |           ~
+~                             |       ~                       ~      |           ~
+~ +---------------+  +--------------+ ~                       ~ +--------------+ ~
+~ | remote-viewer |--| spice-client | ~ <=[ spice channel ]=> ~ | spice-server | ~
+~ +---------------+  +--------------+ ~                       ~ +--------------+ ~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~                       ~~~~~~~~~~~~~~~~~~~~
+```
+
+The virtual machine can access the shared or emulated smart card as any other
+smart card connected to the system through USB reader. There is no additional
+software nor drivers needed so this can work regardless operating system
+(assuming there is a driver understanding PC/SC and appropriate middleware
+understanding GSC-IS 2.1 CAC specification).
+
+More information about libcacard, see the following links to the SPICE documentation:
+
+* https://www.spice-space.org/smartcard-usage.html
+* https://www.spice-space.org/spice-user-manual.html#_cac_smartcard_redirection
+
+# Contributing
+
+To read how to submit a bug or contribute your changes to libcacard, see the
+[CONTRIBUTION.md](https://gitlab.freedesktop.org/spice/libcacard/blob/master/CONTRIBUTION.md)
+in this repository.
 
 # History
 

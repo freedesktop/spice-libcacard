@@ -361,7 +361,7 @@ vcard_emul_rsa_op(VCard *card, VCardKey *key,
     pad_len -= 3; /* format is 0 || 2 || pad || 0 || data */
     /*
      * padding for PKCS #1 encrypted data is a string of random bytes. The
-     * random butes protect against potential decryption attacks against RSA.
+     * random bytes protect against potential decryption attacks against RSA.
      * Since PrivDecrypt has already stripped those bytes, we can't reconstruct
      * them. This shouldn't matter to the upper level code which should just
      * strip this code out anyway, so We'll pad with a constant 3.

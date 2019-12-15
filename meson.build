@@ -1,4 +1,4 @@
-project('libcacard', 'c',
+project('libcacard', 'c', 'cpp',
   version: run_command('build-aux/git-version-gen', '@0@/.tarball-version'.format(meson.source_root()), check: true).stdout().strip(),
   license: 'LGPLv2.1',
   default_options: ['warning_level=2'],
@@ -7,6 +7,7 @@ project('libcacard', 'c',
 meson.add_dist_script('build-aux/meson-dist', meson.project_version(), meson.source_root())
 
 cc = meson.get_compiler('c')
+cxx = meson.get_compiler('cpp')
 
 static_dep = (get_option('default_library') == 'static')
 
@@ -96,3 +97,4 @@ pc.generate(
 if not get_option('disable_tests')
   subdir('tests')
 endif
+subdir('fuzz')

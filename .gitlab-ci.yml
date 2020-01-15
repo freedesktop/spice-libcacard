@@ -1,7 +1,13 @@
 image: fedora:latest
 before_script:
   - dnf update -y
-  - dnf install -y gcc automake libtool make pkgconfig autoconf-archive nss-devel glib2-devel opensc gnutls-utils nss-tools openssl softhsm lcov valgrind libasan clang csbuild which
+  - dnf install -y gcc meson automake libtool make pkgconfig autoconf-archive nss-devel glib2-devel opensc gnutls-utils nss-tools openssl softhsm lcov valgrind libasan clang csbuild which
+
+meson:
+  stage: build
+  script:
+    - meson build --buildtype=release
+    - ninja -C build
 
 .ubuntu:
   image: ubuntu:latest

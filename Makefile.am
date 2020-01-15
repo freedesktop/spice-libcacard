@@ -48,11 +48,11 @@ libcacard_include_HEADERS =			\
 	$(NULL)
 
 libcacard_la_LIBADD = $(GLIB2_LIBS) $(CACARD_LIBS) $(PCSC_LIBS)
-libcacard_la_LDFLAGS =					\
-	-export-symbols $(srcdir)/src/libcacard.syms	\
-	-no-undefined					\
-	-version-info 0:0:0				\
-	$(AM_LDFLAGS)					\
+libcacard_la_LDFLAGS =						\
+	-Wl,--version-script,$(srcdir)/src/libcacard.map	\
+	-no-undefined						\
+	-version-info 0:0:0					\
+	$(AM_LDFLAGS)						\
 	$(NULL)
 
 if OS_WIN32
@@ -141,7 +141,7 @@ EXTRA_DIST +=					\
 	NEWS					\
 	README.md				\
 	docs/libcacard.txt			\
-	src/libcacard.syms			\
+	src/libcacard.map			\
 	build-aux/tap-driver.sh			\
 	build-aux/tap-test			\
 	tests/db/cert8.db                       \

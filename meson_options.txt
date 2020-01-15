@@ -1,0 +1,4 @@
+option('pcsc',
+  type: 'feature',
+  description: 'Build with PC/SC pass-through support'
+)

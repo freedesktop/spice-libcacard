@@ -9,13 +9,14 @@
  */
 #include "config.h"
 
+#include <glib.h>
+
 #include <strings.h>
 #include "vcardt.h"
 #include "vcard_emul_type.h"
 #include "cac.h"
 #include "gp.h"
 #include "msft.h"
-#include "glib-compat.h"
 
 VCardStatus vcard_init(VReader *vreader, VCard *vcard,
                        VCardEmulType type, G_GNUC_UNUSED const char *params,

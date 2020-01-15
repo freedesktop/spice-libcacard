@@ -5,7 +5,7 @@
  * See the COPYING file in the top-level directory.
  */
 
-#include "glib-compat.h"
+#include <glib.h>
 
 #include "vcard.h"
 #include "vreader.h"
@@ -42,8 +42,8 @@ vevent_delete(VEvent *vevent)
 
 static VEvent *vevent_queue_head;
 static VEvent *vevent_queue_tail;
-static CompatGMutex vevent_queue_lock;
-static CompatGCond vevent_queue_condition;
+static GMutex vevent_queue_lock;
+static GCond vevent_queue_condition;
 
 void vevent_queue_init(void)
 {

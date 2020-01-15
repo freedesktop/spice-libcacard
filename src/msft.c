@@ -13,7 +13,7 @@
  * https://docs.microsoft.com/en-us/windows-hardware/drivers/smartcard/discovery-process
  */
 
-#include "glib-compat.h"
+#include <glib.h>
 
 #include <string.h>
 #include <stdio.h>

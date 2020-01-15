@@ -5,7 +5,8 @@
  * See the COPYING.LIB file in the top-level directory.
  */
 
-#include "glib-compat.h"
+#include <glib.h>
+
 #include <string.h>
 #include <stdio.h>
 
@@ -40,7 +41,7 @@ typedef struct _PCSCContext {
     int reader_count;
     int readers_changed;
     GThread *thread;
-    CompatGMutex lock;
+    GMutex lock;
 } PCSCContext;
 
 

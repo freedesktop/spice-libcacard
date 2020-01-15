@@ -11,6 +11,8 @@
  */
 #include "config.h"
 
+#include <glib.h>
+
 /*
  * NSS headers
  */
@@ -28,8 +30,6 @@
 #include <secoid.h>
 #include <secmodt.h>
 #include <sechash.h>
-
-#include "glib-compat.h"
 
 #include "vcard.h"
 #include "card_7816t.h"

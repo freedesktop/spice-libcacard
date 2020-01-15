@@ -5,7 +5,7 @@
  * See the COPYING file in the top-level directory.
  */
 
-#include "glib-compat.h"
+#include <glib.h>
 
 #include <string.h>
 

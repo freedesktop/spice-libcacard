@@ -10,6 +10,8 @@
  * See the COPYING file in the top-level directory.
  */
 
+#include <glib.h>
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -33,8 +35,6 @@
 # include <winscard.h>
 # endif
 #endif
-
-#include "glib-compat.h"
 
 #include "vscard_common.h"
 
@@ -150,7 +150,7 @@ static void pcsc_deinit(void)
 
 static GIOChannel *channel_socket;
 static GByteArray *socket_to_send;
-static CompatGMutex socket_to_send_lock;
+static GMutex socket_to_send_lock;
 static guint socket_tag;
 
 static void
@@ -217,8 +217,8 @@ send_msg(
 }
 
 static VReader *pending_reader;
-static CompatGMutex pending_reader_lock;
-static CompatGCond pending_reader_condition;
+static GMutex pending_reader_lock;
+static GCond pending_reader_condition;
 
 #define MAX_ATR_LEN 40
 static gpointer
@@ -795,11 +795,6 @@ main(
         c = WSAGetLastError();
         fprintf(stderr, "WSAStartup: %d\n", c);
         return 1;
-    }
-#endif
-#if !GLIB_CHECK_VERSION(2, 31, 0)
-    if (!g_thread_supported()) {
-         g_thread_init(NULL);
     }
 #endif
 

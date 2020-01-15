@@ -12,7 +12,6 @@
  * See the COPYING file in the top-level directory.
  */
 
-#include "glib-compat.h"
 #include "card_7816t.h"
 #include "cac.h"
 

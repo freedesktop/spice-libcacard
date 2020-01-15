@@ -5,7 +5,7 @@
  * See the COPYING file in the top-level directory.
  */
 
-#include "glib-compat.h"
+#include <glib.h>
 
 #include <string.h>
 
@@ -21,7 +21,7 @@ struct VReaderStruct {
     VCard *card;
     char *name;
     vreader_id_t id;
-    CompatGMutex lock;
+    GMutex lock;
     VReaderEmul  *reader_private;
     VReaderEmulFree reader_private_free;
 };
@@ -410,7 +410,7 @@ vreader_dequeue(VReaderList *list, VReaderListEntry *entry)
 }
 
 static VReaderList *vreader_list;
-static CompatGMutex vreader_list_mutex;
+static GMutex vreader_list_mutex;
 
 static void
 vreader_list_init(void)

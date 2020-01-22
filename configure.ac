@@ -39,7 +39,7 @@ dnl === --enable-pcsc ==========================================================
 
 AC_ARG_ENABLE([pcsc],
               AS_HELP_STRING([--disable-pcsc],
-                             [do not build passthrough support]),,
+                             [do not build with PC/SC pass-through support]),,
               [enable_pcsc=auto])
 if test "x$enable_pcsc" != "xno"; then
    PKG_CHECK_MODULES(PCSC, [libpcsclite], [have_pcsc=yes], [have_pcsc=no])

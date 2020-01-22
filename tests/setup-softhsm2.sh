@@ -1,4 +1,4 @@
-#/bin/bash
+#!/bin/bash
 
 SRCDIR=`dirname "$0"`
 NSSDB=hwdb

@@ -124,7 +124,6 @@ include $(top_srcdir)/aminclude_static.am
 
 AM_CPPFLAGS =					\
 	-DG_LOG_DOMAIN=\"libcacard\"		\
-	-DLIBCACARD_COMPILATION			\
 	$(CACARD_CFLAGS)			\
 	$(CODE_COVERAGE_CFLAGS)			\
 	$(CODE_COVERAGE_CPPFLAGS)		\

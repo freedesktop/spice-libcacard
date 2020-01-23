@@ -7,7 +7,20 @@ SOPIN="12345678"
 PIN="77777777"
 export GNUTLS_PIN=$PIN
 
-P11LIB=/usr/lib64/pkcs11/libsofthsm2.so
+for P11LIB in \
+        /usr/lib64/pkcs11/libsofthsm2.so \
+        /usr/lib/x86_64-linux-gnu/softhsm/libsofthsm2.so \
+        /usr/lib/softhsm/libsofthsm2.so \
+        none
+do
+	if [ "$P11LIB" = none ]; then
+		echo "Couln't find softHSM PKCS#11 module" >&2
+		exit 1
+	fi
+	if [ -f "$P11LIB" ]; then
+		break
+	fi
+done
 
 generate_cert() {
 	TYPE="$1"

@@ -33,7 +33,8 @@ PKG_PROG_PKG_CONFIG
 AX_COMPILER_FLAGS([WARN_CFLAGS],[WARN_LDFLAGS])
 AX_CODE_COVERAGE()
 
-PKG_CHECK_MODULES(CACARD, [glib-2.0 >= 2.32 nss >= 3.12.8])
+PKG_CHECK_MODULES(GLIB2, [glib-2.0 >= 2.32])
+PKG_CHECK_MODULES(CACARD, [nss >= 3.12.8])
 
 dnl === --enable-pcsc ==========================================================
 

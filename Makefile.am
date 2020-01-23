@@ -47,7 +47,7 @@ libcacard_include_HEADERS =			\
 	src/vscard_common.h			\
 	$(NULL)
 
-libcacard_la_LIBADD = $(CACARD_LIBS) $(PCSC_LIBS)
+libcacard_la_LIBADD = $(GLIB2_LIBS) $(CACARD_LIBS) $(PCSC_LIBS)
 libcacard_la_LDFLAGS =					\
 	-export-symbols $(srcdir)/src/libcacard.syms	\
 	-no-undefined					\
@@ -66,8 +66,8 @@ include $(srcdir)/build-aux/glib-tap.mk
 
 noinst_PROGRAMS += vscclient
 vscclient_SOURCES = src/vscclient.c
-vscclient_LDADD = libcacard.la $(PCSC_LIBS)
-vscclient_CFLAGS = $(AM_CPPFLAGS) $(PCSC_CFLAGS)
+vscclient_LDADD = libcacard.la $(GLIB2_LIBS) $(PCSC_LIBS)
+vscclient_CFLAGS = $(AM_CPPFLAGS) $(GLIB2_CFLAGS) $(PCSC_CFLAGS)
 
 if OS_WIN32
 vscclient_CFLAGS += -D__USE_MINGW_ANSI_STDIO=1
@@ -97,12 +97,14 @@ tests_libcacard_SOURCES =			\
 	tests/libcacard.c			\
 	$(NULL)
 tests_libcacard_LDADD =				\
+	$(GLIB2_LIBS)				\
 	libcacard.la				\
 	src/common.lo				\
 	src/simpletlv.lo			\
 	$(NULL)
 
 tests_simpletlv_LDADD =				\
+	$(GLIB2_LIBS)				\
 	libcacard.la				\
 	src/common.lo				\
 	src/simpletlv.lo			\
@@ -114,6 +116,7 @@ tests_hwtests_SOURCES =				\
 	tests/hwtests.c				\
 	$(NULL)
 tests_hwtests_LDADD =				\
+	$(GLIB2_LIBS)				\
 	libcacard.la				\
 	src/common.lo				\
 	src/simpletlv.lo			\
@@ -124,6 +127,7 @@ include $(top_srcdir)/aminclude_static.am
 
 AM_CPPFLAGS =					\
 	-DG_LOG_DOMAIN=\"libcacard\"		\
+	$(GLIB2_CFLAGS)				\
 	$(CACARD_CFLAGS)			\
 	$(CODE_COVERAGE_CFLAGS)			\
 	$(CODE_COVERAGE_CPPFLAGS)		\

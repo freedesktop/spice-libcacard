@@ -25,7 +25,7 @@ static GMutex mutex;
 static GCond cond;
 
 static gpointer
-events_thread(gpointer arg)
+events_thread(G_GNUC_UNUSED gpointer arg)
 {
     unsigned int reader_id;
     VEvent *event;

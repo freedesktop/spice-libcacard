@@ -8,6 +8,7 @@ Fedora meson:
   script:
     - meson build --buildtype=release
     - ninja -C build
+    - meson test -C build
 
 .ubuntu:
   image: ubuntu:latest

@@ -82,7 +82,7 @@ More information about libcacard, see the following links to the SPICE documenta
 # Contributing
 
 To read how to submit a bug or contribute your changes to libcacard, see the
-[CONTRIBUTION.md](https://gitlab.freedesktop.org/spice/libcacard/blob/master/CONTRIBUTION.md)
+[CONTRIBUTING.md](https://gitlab.freedesktop.org/spice/libcacard/blob/master/CONTRIBUTING.md)
 in this repository.
 
 # History

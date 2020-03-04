@@ -86,7 +86,7 @@ enum {
 };
 
 struct VCardEmulOptionsStruct {
-    void *nss_db;
+    char *nss_db;
     VirtualReaderOptions *vreader;
     int vreader_count;
     VCardEmulType hw_card_type;
@@ -991,6 +991,10 @@ vcard_emul_init(const VCardEmulOptions *options)
     /* first initialize NSS */
     if (options->nss_db) {
         rv = NSS_Init(options->nss_db);
+        if (rv != SECSuccess) {
+            g_debug("%s: NSS_Init failed. Does the DB directory '%s' exist?", __func__, options->nss_db);
+            return VCARD_EMUL_FAIL;
+        }
     } else {
         gchar *path;
 #ifndef _WIN32
@@ -1006,10 +1010,12 @@ vcard_emul_init(const VCardEmulOptions *options)
 #endif
 
         rv = NSS_Init(path);
+        if (rv != SECSuccess) {
+            g_debug("%s: NSS_Init failed. Does the DB directory '%s' exist?", __func__, path);
+            g_free(path);
+            return VCARD_EMUL_FAIL;
+        }
         g_free(path);
-    }
-    if (rv != SECSuccess) {
-        return VCARD_EMUL_FAIL;
     }
     /* Set password callback function */
     PK11_SetPasswordFunc(vcard_emul_get_password);

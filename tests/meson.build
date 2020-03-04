@@ -20,7 +20,6 @@ libcacard_test = executable(
 test(
   'libcacard',
   libcacard_test,
-  depends: [softhsm],
   env: env,
 )
 

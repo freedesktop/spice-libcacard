@@ -3,12 +3,20 @@ env.set('G_TEST_SRCDIR', meson.current_source_dir())
 env.set('G_TEST_BUILDDIR', meson.build_root())
 env.set('SOFTHSM2_CONF', meson.build_root() / 'softhsm2.conf')
 
-softhsm = custom_target(
-  'softhsm2.conf',
-  command: find_program('setup-softhsm2.sh'),
-  capture: true,
-  output: 'setup-softhsm2.log',
-)
+pkcs11_tool_dep = find_program('pkcs11-tool', required: false)
+p11tool_dep = find_program('p11tool', required: false)
+modutil_dep = find_program('modutil', required: false)
+openssl_dep = find_program('openssl', required: false)
+softhsm_util_dep = find_program('softhsm2-util', required: false)
+
+if pkcs11_tool_dep.found() and p11tool_dep.found() and modutil_dep.found() and openssl_dep.found() and softhsm_util_dep.found()
+  softhsm = custom_target(
+    'softhsm2.conf',
+    command: find_program('setup-softhsm2.sh'),
+    capture: true,
+    output: 'setup-softhsm2.log',
+  )
+endif
 
 libcacard_test = executable(
   'libcacard',

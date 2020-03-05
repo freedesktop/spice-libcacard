@@ -8,8 +8,10 @@ meson.add_dist_script('build-aux/meson-dist', meson.project_version(), meson.sou
 
 cc = meson.get_compiler('c')
 
-glib_dep = dependency('glib-2.0', version: '>= 2.32')
-nss_dep = dependency('nss', version: '>= 3.12.8')
+static_dep = (get_option('default_library') == 'static')
+
+glib_dep = dependency('glib-2.0', version: '>= 2.32', static: static_dep)
+nss_dep = dependency('nss', version: '>= 3.12.8', static: static_dep)
 
 pcsc_dep = dependency('libpcsclite', required: get_option('pcsc'))
 

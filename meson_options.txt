@@ -2,3 +2,8 @@ option('pcsc',
   type: 'feature',
   description: 'Build with PC/SC pass-through support'
 )
+option('disable_tests',
+  type: 'boolean',
+  value: false,
+  description: 'Disable building tests targets'
+)

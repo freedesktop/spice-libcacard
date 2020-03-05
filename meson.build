@@ -91,4 +91,6 @@ pc.generate(
   description: 'CAC (Common Access Card) library',
 )
 
-subdir('tests')
+if not get_option('disable_tests')
+  subdir('tests')
+endif

@@ -63,6 +63,7 @@ VCardEmulError vcard_emul_force_card_remove(VReader *vreader);
 
 VCardEmulOptions *vcard_emul_options(const char *args);
 VCardEmulError vcard_emul_init(const VCardEmulOptions *options);
+VCardEmulError vcard_emul_finalize(void);
 void vcard_emul_replay_insertion_events(void);
 void vcard_emul_usage(void);
 

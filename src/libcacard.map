@@ -22,6 +22,7 @@
     vcard_emul_type_from_string;
     vcard_emul_type_select;
     vcard_emul_usage;
+    vcard_emul_finalize;
     vcard_find_applet;
     vcard_free;
     vcard_get_atr;

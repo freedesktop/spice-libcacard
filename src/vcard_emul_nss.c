@@ -1167,6 +1167,20 @@ vcard_emul_replay_insertion_events(void)
     vreader_list_delete(list);
 }
 
+VCardEmulError
+vcard_emul_finalize(void)
+{
+    SECStatus rv;
+
+    rv = NSS_Shutdown();
+    if (rv != SECSuccess) {
+        g_debug("%s: NSS_Shutdown failed.", __func__);
+        return VCARD_EMUL_FAIL;
+    }
+
+    return VCARD_EMUL_OK;
+}
+
 /*
  *  Silly little functions to help parsing our argument string
  */

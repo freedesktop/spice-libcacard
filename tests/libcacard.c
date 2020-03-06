@@ -1073,15 +1073,20 @@ static void libcacard_finalize(void)
 {
     VReader *reader = vreader_get_reader_by_id(0);
 
+    /* This actually still generates events */
+    if (reader) /*if /remove didn't run */
+        vreader_remove_reader(reader);
+
     /* This probably supposed to be a event that terminates the loop */
     vevent_queue_vevent(vevent_new(VEVENT_LAST, reader, NULL));
 
     /* join */
     g_thread_join(thread);
 
-    if (reader) /*if /remove didn't run */
-        vreader_remove_reader(reader);
+    /* Clean up */
     vreader_free(reader);
+
+    vcard_emul_finalize();
 }
 
 int main(int argc, char *argv[])

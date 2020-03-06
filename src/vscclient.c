@@ -927,5 +927,7 @@ main(
     pcsc_deinit();
 #endif
 
+    vcard_emul_finalize();
+
     return 0;
 }

@@ -1071,6 +1071,7 @@ vcard_emul_init(const VCardEmulOptions *options)
             vreader_free(vreader);
             has_readers = PR_TRUE;
         }
+        PK11_FreeSlot(slot);
         g_free(certs);
         g_free(cert_len);
         g_free(keys);
@@ -1138,6 +1139,7 @@ vcard_emul_init(const VCardEmulOptions *options)
                         vreader_get_name(vreader));
                 vcard_free(vcard);
             }
+            vreader_free(vreader);
         }
         vcard_emul_new_event_thread(module);
     }

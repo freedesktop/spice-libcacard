@@ -944,11 +944,11 @@ vcard_emul_force_card_insert(VReader *vreader)
  * vcards can be created (indicates error with certificates provided
  * or db), or if any other higher level error (NSS error, missing coolkey). */
 static int vcard_emul_init_called;
+static NSSInitContext *nss_ctx = NULL;
 
 VCardEmulError
 vcard_emul_init(const VCardEmulOptions *options)
 {
-    SECStatus rv;
     PRBool has_readers = PR_FALSE;
     VReader *vreader;
     VReaderEmul *vreader_emul;
@@ -990,9 +990,9 @@ vcard_emul_init(const VCardEmulOptions *options)
 
     /* first initialize NSS */
     if (options->nss_db) {
-        rv = NSS_Init(options->nss_db);
-        if (rv != SECSuccess) {
-            g_debug("%s: NSS_Init failed. Does the DB directory '%s' exist?", __func__, options->nss_db);
+        nss_ctx = NSS_InitContext(options->nss_db, "", "", "", NULL, NSS_INIT_READONLY);
+        if (nss_ctx == NULL) {
+            g_debug("%s: NSS_InitContext failed. Does the DB directory '%s' exist?", __func__, options->nss_db);
             return VCARD_EMUL_FAIL;
         }
     } else {
@@ -1009,9 +1009,9 @@ vcard_emul_init(const VCardEmulOptions *options)
             g_get_system_config_dirs()[0], "pki", "nssdb", NULL);
 #endif
 
-        rv = NSS_Init(path);
-        if (rv != SECSuccess) {
-            g_debug("%s: NSS_Init failed. Does the DB directory '%s' exist?", __func__, path);
+        nss_ctx = NSS_InitContext(path, "", "", "", NULL, NSS_INIT_READONLY);
+        if (nss_ctx == NULL) {
+            g_debug("%s: NSS_InitContext failed. Does the DB directory '%s' exist?", __func__, path);
             g_free(path);
             return VCARD_EMUL_FAIL;
         }
@@ -1172,11 +1172,12 @@ vcard_emul_finalize(void)
 {
     SECStatus rv;
 
-    rv = NSS_Shutdown();
+    rv = NSS_ShutdownContext(nss_ctx);
     if (rv != SECSuccess) {
-        g_debug("%s: NSS_Shutdown failed.", __func__);
+        g_debug("%s: NSS_ShutdownContext failed.", __func__);
         return VCARD_EMUL_FAIL;
     }
+    nss_ctx = NULL;
 
     return VCARD_EMUL_OK;
 }

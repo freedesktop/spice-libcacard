@@ -89,6 +89,7 @@ test_programs =					\
 	tests/libcacard				\
 	tests/simpletlv				\
 	tests/hwtests				\
+	tests/initialize			\
 	$(NULL)
 
 tests_libcacard_SOURCES =			\
@@ -122,6 +123,13 @@ tests_hwtests_LDADD =				\
 	src/simpletlv.lo			\
 	$(NULL)
 tests_hwtests_DEPENDENCIES = tests/softhsm2.conf
+tests_initialize_SOURCES =			\
+	tests/initialize.c			\
+	$(NULL)
+tests_initialize_LDADD =			\
+	$(GLIB2_LIBS)				\
+	libcacard.la				\
+	$(NULL)
 
 include $(top_srcdir)/aminclude_static.am
 

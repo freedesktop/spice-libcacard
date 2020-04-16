@@ -44,6 +44,19 @@ test(
   env: env,
 )
 
+initialize_test = executable(
+  'initialize',
+  ['initialize.c'],
+  objects: libcacard.extract_all_objects(),
+  dependencies: [libcacard_dep],
+)
+
+test(
+  'initialize',
+  initialize_test,
+  env: env,
+)
+
 hwtests_test = executable(
   'hwtests',
   ['hwtests.c', 'common.c'],

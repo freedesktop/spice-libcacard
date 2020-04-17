@@ -1000,13 +1000,12 @@ vcard_emul_init(const VCardEmulOptions *options)
 #ifndef _WIN32
         path = g_strdup("/etc/pki/nssdb");
 #else
-        if (g_get_system_config_dirs() == NULL ||
-            g_get_system_config_dirs()[0] == NULL) {
+        const gchar * const *config_dirs = g_get_system_config_dirs();
+        if (config_dirs == NULL || config_dirs[0] == NULL) {
             return VCARD_EMUL_FAIL;
         }
 
-        path = g_build_filename(
-            g_get_system_config_dirs()[0], "pki", "nssdb", NULL);
+        path = g_build_filename(config_dirs[0], "pki", "nssdb", NULL);
 #endif
 
         nss_ctx = NSS_InitContext(path, "", "", "", NULL, NSS_INIT_READONLY);

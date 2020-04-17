@@ -956,6 +956,8 @@ vcard_emul_init(const VCardEmulOptions *options)
     SECMODModuleList *module_list;
     SECMODModuleList *mlp;
     int i;
+    gchar *path = NULL;
+    const gchar *nss_db;
 
     g_debug("%s: called", __func__);
 
@@ -989,16 +991,10 @@ vcard_emul_init(const VCardEmulOptions *options)
 #endif
 
     /* first initialize NSS */
-    if (options->nss_db) {
-        nss_ctx = NSS_InitContext(options->nss_db, "", "", "", NULL, NSS_INIT_READONLY);
-        if (nss_ctx == NULL) {
-            g_debug("%s: NSS_InitContext failed. Does the DB directory '%s' exist?", __func__, options->nss_db);
-            return VCARD_EMUL_FAIL;
-        }
-    } else {
-        gchar *path;
+    nss_db = options->nss_db;
+    if (nss_db == NULL) {
 #ifndef _WIN32
-        path = g_strdup("/etc/pki/nssdb");
+        nss_db = "/etc/pki/nssdb";
 #else
         const gchar * const *config_dirs = g_get_system_config_dirs();
         if (config_dirs == NULL || config_dirs[0] == NULL) {
@@ -1006,16 +1002,20 @@ vcard_emul_init(const VCardEmulOptions *options)
         }
 
         path = g_build_filename(config_dirs[0], "pki", "nssdb", NULL);
+        nss_db = path;
 #endif
-
-        nss_ctx = NSS_InitContext(path, "", "", "", NULL, NSS_INIT_READONLY);
-        if (nss_ctx == NULL) {
-            g_debug("%s: NSS_InitContext failed. Does the DB directory '%s' exist?", __func__, path);
-            g_free(path);
-            return VCARD_EMUL_FAIL;
-        }
-        g_free(path);
     }
+
+    nss_ctx = NSS_InitContext(nss_db, "", "", "", NULL, NSS_INIT_READONLY);
+    if (nss_ctx == NULL) {
+        g_debug("%s: NSS_InitContext failed. Does the DB directory '%s' exist?",
+                __func__, nss_db);
+        g_free(path);
+        return VCARD_EMUL_FAIL;
+    }
+    g_free(path);
+    path = NULL;
+
     /* Set password callback function */
     PK11_SetPasswordFunc(vcard_emul_get_password);
 

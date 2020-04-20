@@ -90,7 +90,7 @@ struct VCardEmulOptionsStruct {
     VirtualReaderOptions *vreader;
     int vreader_count;
     VCardEmulType hw_card_type;
-    const char *hw_type_params;
+    char *hw_type_params;
     int use_hw;
 };
 
@@ -869,7 +869,7 @@ static const VCardEmulOptions default_options = {
     .vreader = NULL,
     .vreader_count = 0,
     .hw_card_type = VCARD_EMUL_CAC,
-    .hw_type_params = "",
+    .hw_type_params = NULL,
     .use_hw = USE_HW_YES,
 };
 

@@ -1,6 +1,7 @@
 fuzz_targets = [
   'fuzz_xfer',
   'fuzz_simpletlv',
+  'fuzz_options',
 ]
 
 deps = [libcacard_dep]

@@ -1234,7 +1234,7 @@ static VCardEmulOptions options;
 #define NEXT_TOKEN(token) \
             (token) = args; \
             args = strpbrk(args, ",)"); \
-            if (*args == 0 || *args == ')') { \
+            if (args == NULL || *args == 0 || *args == ')') { \
                 fprintf(stderr, "Error: invalid soft specification.\n"); \
                 return NULL; \
             } \

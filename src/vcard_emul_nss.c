@@ -1236,7 +1236,7 @@ static VCardEmulOptions options;
             args = strpbrk(args, ",)"); \
             if (args == NULL || *args == 0 || *args == ')') { \
                 fprintf(stderr, "Error: invalid soft specification.\n"); \
-                return NULL; \
+                goto fail; \
             } \
             (token##_length) = args - (token); \
             args = strip(args+1);
@@ -1244,7 +1244,7 @@ static VCardEmulOptions options;
 VCardEmulOptions *
 vcard_emul_options(const char *args)
 {
-    int reader_count = 0;
+    int i, j, reader_count = 0;
     VCardEmulOptions *opts;
 
     /* Allow the future use of allocating the options structure on the fly */
@@ -1268,13 +1268,13 @@ vcard_emul_options(const char *args)
             size_t type_params_length;
             char type_str[100];
             VCardEmulType type;
-            int count, i;
+            int count;
             VirtualReaderOptions *vreaderOpt;
 
             args = strip(args + 5);
             if (*args != '(') {
                 fprintf(stderr, "Error: invalid soft specification.\n");
-                return NULL;
+                goto fail;
             }
             args = strip(args+1);
 
@@ -1288,14 +1288,14 @@ vcard_emul_options(const char *args)
             if (type == VCARD_EMUL_NONE) {
                 fprintf(stderr, "Error: invalid smartcard type '%s'.\n",
                         type_str);
-                return NULL;
+                goto fail;
             }
 
             NEXT_TOKEN(type_params)
 
             if (*args == 0) {
                 fprintf(stderr, "Error: missing cert specification.\n");
-                return NULL;
+                goto fail;
             }
 
             if (opts->vreader_count >= reader_count) {
@@ -1340,7 +1340,7 @@ vcard_emul_options(const char *args)
             if (opts->hw_card_type == VCARD_EMUL_NONE) {
                 fprintf(stderr, "Error: invalid smartcard type '%s'.\n",
                         args);
-                return NULL;
+                goto fail;
             }
             args = find_blank(args);
         /* hw_params= */
@@ -1356,14 +1356,14 @@ vcard_emul_options(const char *args)
             args = strip(args+3);
             if (*args != '"') {
                 fprintf(stderr, "Error: you must quote the file path.\n");
-                return NULL;
+                goto fail;
             }
             args++;
             db = args;
             args = strpbrk(args, "\"\n");
             if (args == NULL) {
-              fprintf(stderr, "Error: invalid db argument.\n");
-              return NULL;
+                fprintf(stderr, "Error: invalid db argument.\n");
+                goto fail;
             }
             opts->nss_db = g_strndup(db, args-db);
             if (*args != 0) {
@@ -1381,11 +1381,27 @@ vcard_emul_options(const char *args)
 #endif
         } else {
             fprintf(stderr, "Error: Unknown smartcard specification.\n");
-            return NULL;
+            goto fail;
         }
     } while (*args != 0);
 
     return opts;
+
+fail:
+    /* Clean up what was allocated above on failure */
+    for (i = 0; i < opts->vreader_count; i++) {
+        g_free(opts->vreader[i].name);
+        g_free(opts->vreader[i].vname);
+        g_free(opts->vreader[i].type_params);
+        for (j = 0; j < opts->vreader[i].cert_count; j++) {
+            g_free(opts->vreader[i].cert_name[j]);
+        }
+        g_free(opts->vreader[i].cert_name);
+    }
+    g_free(opts->vreader);
+    g_free(opts->hw_type_params);
+    g_free(opts->nss_db);
+    return NULL;
 }
 
 unsigned char *

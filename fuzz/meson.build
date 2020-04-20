@@ -1,5 +1,6 @@
 fuzz_targets = [
   'fuzz_xfer',
+  'fuzz_simpletlv',
 ]
 
 deps = [libcacard_dep]
@@ -16,6 +17,7 @@ endif
 
 foreach target_name : fuzz_targets
   executable(target_name, [extra_sources, target_name + '.c'],
+    objects: libcacard.extract_all_objects(),
     c_args : extra_c_args,
     dependencies : deps,
   )

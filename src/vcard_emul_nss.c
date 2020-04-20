@@ -1346,6 +1346,11 @@ vcard_emul_options(const char *args)
         /* hw_params= */
         } else if (strncmp(args, "hw_params=", 10) == 0) {
             const char *params;
+
+            if (opts->hw_type_params != NULL) {
+                fprintf(stderr, "Error: redefinition of hw_params= is not allowed.\n");
+                goto fail;
+            }
             args = strip(args+10);
             params = args;
             args = find_blank(args);
@@ -1353,6 +1358,11 @@ vcard_emul_options(const char *args)
         /* db="/data/base/path" */
         } else if (strncmp(args, "db=", 3) == 0) {
             const char *db;
+
+            if (opts->nss_db != NULL) {
+                fprintf(stderr, "Error: redefinition of db= is not allowed.\n");
+                goto fail;
+            }
             args = strip(args+3);
             if (*args != '"') {
                 fprintf(stderr, "Error: you must quote the file path.\n");

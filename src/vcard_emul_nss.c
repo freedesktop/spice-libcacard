@@ -1475,7 +1475,7 @@ vcard_emul_usage(void)
 " db={nss_database}               (default sql:/etc/pki/nssdb)\n"
 " use_hw=[yes|no|removable]       (default yes)\n"
 " hw_type={card_type_to_emulate}  (default CAC)\n"
-" hw_param={param_for_card}       (default \"\")\n"
+" hw_params={param_for_card}      (default \"\")\n"
 " nssemul                         (alias for use_hw=yes, hw_type=CAC)\n"
 #if defined(ENABLE_PCSC)
 " passthru                        (alias for use_hw=yes, hw_type=PASSTHRU)\n"
@@ -1494,7 +1494,7 @@ vcard_emul_usage(void)
 "\n"
 "Unless use_hw is set to no, all tokens that look like removable hardware\n"
 "tokens will be presented to the guest using the emulator specified by\n"
-"hw_type, and parameters of hw_param. If use_hw is set to 'removable', "
+"hw_type, and parameters of hw_params. If use_hw is set to 'removable', "
 "present any removable token.\n"
 "\n"
 "If more one or more soft= parameters are specified, these readers will be\n"

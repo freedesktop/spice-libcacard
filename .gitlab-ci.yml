@@ -13,6 +13,7 @@ Fedora meson:
 .ubuntu:
   image: ubuntu:latest
   before_script:
+    - export DEBIAN_FRONTEND=noninteractive
     - apt-get update -y
     - apt-get install -y libglib2.0-dev libnss3-dev  pkgconf libtool make autoconf autoconf-archive automake libsofthsm2-dev softhsm2 softhsm2-common help2man gnutls-bin libcmocka-dev libusb-dev libudev-dev flex libnss3-tools libssl-dev libpcsclite1 opensc openssl
 

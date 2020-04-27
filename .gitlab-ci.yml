@@ -24,6 +24,30 @@ Ubuntu build:
     - ./autogen.sh
     - make
 
+.centos7:
+  image: centos:7
+  before_script:
+    - yum update -y
+    - yum install -y gcc automake libtool make pkgconfig autoconf-archive nss-devel glib2-devel opensc gnutls-utils nss-tools openssl softhsm lcov valgrind libasan clang csbuild which
+
+CentOS 7 build:
+  extends: .centos7
+  stage: build
+  script:
+    - ./autogen.sh
+    - make
+
+CentOS 7 build and check:
+  extends: .centos7
+  stage: test
+  script:
+    - ./autogen.sh
+    - make check
+  artifacts:
+    expire_in: '1 week'
+    paths:
+      - test-suite.log
+
 Ubuntu build and check:
   extends: .ubuntu
   stage: test

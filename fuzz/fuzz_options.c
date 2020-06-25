@@ -51,7 +51,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *Data, size_t Size)
     }
 
     memcpy(args, Data, Size);
-    args[Size] =  '\0';
+    args[Size] = '\0';
     options = vcard_emul_options(args);
     if (options == NULL) {
         /* Invalid input -- the function should have cleaned up for itself */

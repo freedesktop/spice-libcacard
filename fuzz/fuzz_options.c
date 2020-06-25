@@ -46,7 +46,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *Data, size_t Size)
     char args[1025];
 
     if (Size > kMaxInputLength) {
-        g_debug("Too short input for APDU");
+        g_debug("Too long input option");
         return 0;
     }
 

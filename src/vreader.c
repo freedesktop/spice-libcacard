@@ -83,7 +83,7 @@ apdu_ins_to_string(int ins)
     case CAC_GET_CERTIFICATE:
         return "get certificate";
     default:
-        g_return_val_if_reached("unknown");
+        return "unknown";
     }
 }
 

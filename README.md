@@ -80,6 +80,11 @@ More information about libcacard, see the following links to the SPICE documenta
 * https://www.spice-space.org/smartcard-usage.html
 * https://www.spice-space.org/spice-user-manual.html#_cac_smartcard_redirection
 
+There is also documentation in qemu repository, describing how CCID device emulation
+works inside of the QEMU:
+
+* https://git.qemu.org/?p=qemu.git;a=blob;f=docs/ccid.txt
+
 # Contributing
 
 To read how to submit a bug or contribute your changes to libcacard, see the

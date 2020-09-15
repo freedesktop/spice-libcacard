@@ -9,6 +9,7 @@ Fedora meson:
     - meson build --buildtype=release
     - ninja -C build
     - meson test -C build
+    - meson dist -C build
 
 .ubuntu:
   image: ubuntu:latest
@@ -43,6 +44,7 @@ CentOS 7 build and check:
   script:
     - ./autogen.sh
     - make check
+    - make dist
   artifacts:
     expire_in: '1 week'
     paths:
@@ -54,6 +56,7 @@ Ubuntu build and check:
   script:
     - ./autogen.sh
     - make check
+    - make dist
   artifacts:
     expire_in: '1 week'
     paths:
@@ -72,6 +75,7 @@ Fedora build and check:
     - make check
     - make code-coverage-capture
     - lcov --summary libcacard-*-coverage.info
+    - make dist
   artifacts:
     expire_in: '1 week'
     paths:

@@ -145,6 +145,19 @@ AM_CPPFLAGS =					\
 	$(NULL)
 AM_LDFLAGS = $(CODE_COVERAGE_LIBS) $(WARN_LDFLAGS)
 
+MESON_FILES =					\
+	meson_options.txt			\
+	meson.build				\
+	build-aux/meson-dist			\
+	tests/meson.build			\
+	fuzz/meson.build			\
+	fuzz/fuzzer.c				\
+	fuzz/fuzzer.h				\
+	fuzz/fuzz_options.c			\
+	fuzz/fuzz_simpletlv.c			\
+	fuzz/fuzz_xfer.c			\
+	$(NULL)
+
 EXTRA_DIST +=					\
 	NEWS					\
 	README.md				\
@@ -156,6 +169,7 @@ EXTRA_DIST +=					\
 	tests/db/key4.db                        \
 	tests/db/pkcs11.txt                     \
 	tests/cert.cfg				\
+	$(MESON_FILES)				\
 	$(NULL)
 
 # aclocal will copy m4 files from pkg-config/autoconf-archives

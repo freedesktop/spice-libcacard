@@ -152,9 +152,9 @@ EXTRA_DIST +=					\
 	src/libcacard.map			\
 	build-aux/tap-driver.sh			\
 	build-aux/tap-test			\
-	tests/db/cert8.db                       \
-	tests/db/key3.db                        \
-	tests/db/secmod.db                      \
+	tests/db/cert9.db                       \
+	tests/db/key4.db                        \
+	tests/db/pkcs11.txt                     \
 	tests/cert.cfg				\
 	$(NULL)
 

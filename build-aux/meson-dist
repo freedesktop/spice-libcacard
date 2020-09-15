@@ -23,7 +23,6 @@ echo Generating ChangeLog...
 pushd "$MESON_DIST_ROOT"
 rm \
     suppr.txt \
-    .travis.yml \
     git.mk \
     autogen.sh \
     build-aux/nss.supp \

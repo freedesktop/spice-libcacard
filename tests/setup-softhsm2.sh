@@ -8,6 +8,7 @@ PIN="77777777"
 export GNUTLS_PIN=$PIN
 
 for P11LIB in \
+        /usr/lib/pkcs11/libsofthsm2.so \
         /usr/lib64/pkcs11/libsofthsm2.so \
         /usr/lib/x86_64-linux-gnu/softhsm/libsofthsm2.so \
         /usr/lib/softhsm/libsofthsm2.so \

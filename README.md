@@ -1,6 +1,6 @@
 # libcacard
 [![pipeline status](https://gitlab.freedesktop.org/spice/libcacard/badges/master/pipeline.svg)](https://gitlab.freedesktop.org/spice/libcacard/commits/master)
-[![coverage report](https://gitlab.freedesktop.org/spice/libcacard/badges/master/coverage.svg)](https://gitlab.freedesktop.org/spice/libcacard/commits/master)
+[![coverage report](https://gitlab.freedesktop.org/spice/libcacard/badges/master/coverage.svg)](https://libcacard.freedesktop.org/)
 [![cii best practices](https://bestpractices.coreinfrastructure.org/projects/3465/badge)](https://bestpractices.coreinfrastructure.org/en/projects/3465)
 [![Fuzzing Status](https://oss-fuzz-build-logs.storage.googleapis.com/badges/libcacard.svg)](https://bugs.chromium.org/p/oss-fuzz/issues/list?sort=-opened&can=1&q=proj:libcacard)
 

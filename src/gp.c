@@ -35,8 +35,9 @@ static unsigned char cplp_data[] = {
     0x40, 0x21, /* Operating System release date 21. 1. 2014 */
     0x01, 0x01, /* Operating System release level */
     0x07, 0x4F, /* IC Fabrication Date ??? */
-    0x00, 0x19, 0x00, 0x52, /* IC Serial Number */
-    0x89, 0x0E, /* IC Batch Identifier */
+    /* The following 6 bytes are filled by unique hash from certificates */
+    0x00, 0x00, 0x00, 0x00, /* IC Serial Number */
+    0x00, 0x00, /* IC Batch Identifier */
     0x47, 0x92, /* IC Module Fabricator */
     0x72, 0x05, /* IC Module Packaging Date 205th day of 2017 */
     0x16, 0x73, /* ICC Manufacturer */

@@ -908,6 +908,7 @@ void test_gp_applet(void)
         0x00, 0xca, 0x9f, 0x7f, 0x00
     };
     VReader *reader = vreader_get_reader_by_id(0);
+    unsigned int equal_bytes = 0, n;
 
     /* select GP and wait for the response bytes */
     select_aid_response(reader, gp_aid, sizeof(gp_aid), 0x1b);
@@ -937,12 +938,10 @@ void test_gp_applet(void)
     g_assert_cmpint(pbRecvBuffer[dwRecvLength-1], ==, 0x00);
     /* This part should be generate from certificate hash, which should
      * overwrite default values in template */
-    g_assert_cmpint(pbRecvBuffer[15], !=, 0x00);
-    g_assert_cmpint(pbRecvBuffer[16], !=, 0x19);
-    g_assert_cmpint(pbRecvBuffer[17], !=, 0x00);
-    g_assert_cmpint(pbRecvBuffer[18], !=, 0x52);
-    g_assert_cmpint(pbRecvBuffer[19], !=, 0x89);
-    g_assert_cmpint(pbRecvBuffer[20], !=, 0x0E);
+    for (n = 15; n <= 20; ++n) {
+        equal_bytes += (pbRecvBuffer[n] == 0x00);
+    }
+    g_assert_cmpint(equal_bytes, <, 6);
 
     vreader_free(reader); /* get by id ref */
 }

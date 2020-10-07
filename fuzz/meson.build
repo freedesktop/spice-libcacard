@@ -1,3 +1,7 @@
+env = environment()
+env.set('G_TEST_SRCDIR', meson.current_source_dir())
+env.set('G_TEST_BUILDDIR', meson.build_root())
+
 fuzz_targets = [
   'fuzz_xfer',
   'fuzz_simpletlv',
@@ -17,9 +21,13 @@ else
 endif
 
 foreach target_name : fuzz_targets
-  executable(target_name, [extra_sources, target_name + '.c'],
+  exe = executable(target_name, [extra_sources, target_name + '.c'],
     objects: libcacard.extract_all_objects(),
     c_args : extra_c_args,
     dependencies : deps,
+  )
+  test(target_name, exe,
+    args: [meson.current_source_dir() + '/corpora/' + target_name + '/test'],
+    env: env,
   )
 endforeach

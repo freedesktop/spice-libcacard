@@ -59,28 +59,17 @@ events_thread(gpointer arg)
     return NULL;
 }
 
-static void libcacard_init(char *argv0)
+static void libcacard_init(void)
 {
     VCardEmulOptions *command_line_options = NULL;
-    gchar *path = NULL;
     gchar *dbdir = NULL;
     gchar *args = NULL;
     VReader *r;
     VCardEmulError ret;
 
-    /* This is looking for NSS DB dir in the same directory, where the binary
-     * is placed if path is absolute, or in the current directory otherwise */
-    if (g_path_is_absolute(argv0)) {
-        path = g_path_get_dirname(argv0);
-    } else {
-        gchar *wd = g_get_current_dir();
-        gchar *abs = g_build_filename(wd, argv0, NULL);
-        g_free(wd);
-        path = g_path_get_dirname(abs);
-        g_free(abs);
-    }
-    dbdir = g_build_filename(path, "db", NULL);
-    g_free(path);
+    /* This will use the test directory when running as test and
+     * and dirname part of argv[0] when running from oss-fuzz */
+    dbdir = g_test_build_filename(G_TEST_DIST, "db", NULL);
     args = g_strdup_printf(ARGS, dbdir);
 
     thread = g_thread_new("fuzz/events", events_thread, NULL);
@@ -127,10 +116,12 @@ int LLVMFuzzerInitialize(int *argc, char ***argv)
 
     (void) argc;
 
+    g_test_init(argc, argv, NULL);
+
     loop = g_main_loop_new(NULL, TRUE);
 
     g_debug("Initializing ...");
-    libcacard_init(**argv);
+    libcacard_init();
 
     reader = vreader_get_reader_by_id(0);
     if (vreader_card_is_present(reader) != VREADER_OK) {

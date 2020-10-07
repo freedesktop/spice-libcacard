@@ -3,6 +3,7 @@
 SRCDIR=`dirname "$0"`
 NSSDB=hwdb
 CONF=softhsm2.conf
+CONF2=softhsm2-no-raw.conf
 SOPIN="12345678"
 PIN="77777777"
 export GNUTLS_PIN=$PIN
@@ -86,6 +87,14 @@ export SOFTHSM2_CONF="$CONF"
 if [ ! -f "$CONF" ]; then
 	echo "directories.tokendir = `pwd`/tokens/" > $CONF
 	echo "slots.removable = true" >> $CONF
+	# One possible configuration is working with a token
+	# that does not support raw signature, which we need
+	# to emulate using PKCS#1.5
+	cat $CONF > $CONF2
+	echo "slots.mechanisms = CKM_RSA_PKCS" >> $CONF2
+	# we should be able to use just -CKM_RSA_X_509 but
+	# it is broken because of a bug
+	# https://github.com/opendnssec/SoftHSMv2/pull/561
 fi
 
 # SoftHSM configuration directory

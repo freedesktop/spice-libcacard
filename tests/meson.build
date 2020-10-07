@@ -2,6 +2,8 @@ env = environment()
 env.set('G_TEST_SRCDIR', meson.current_source_dir())
 env.set('G_TEST_BUILDDIR', meson.build_root())
 env.set('SOFTHSM2_CONF', meson.build_root() / 'softhsm2.conf')
+env2 = env
+env2.set('SOFTHSM2_CONF', meson.build_root() / 'softhsm2-no-raw.conf')
 
 pkcs11_tool_dep = find_program('pkcs11-tool', required: false)
 p11tool_dep = find_program('p11tool', required: false)
@@ -69,4 +71,12 @@ test(
   hwtests_test,
   depends: [softhsm],
   env: env,
+)
+
+# again with different softhsm configuration not allowing raw RSA signatures */
+test(
+  'hwtests_no_raw',
+  hwtests_test,
+  depends: [softhsm],
+  env: env2,
 )

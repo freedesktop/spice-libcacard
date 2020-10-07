@@ -6,10 +6,15 @@ before_script:
 Fedora meson:
   stage: build
   script:
-    - meson build --buildtype=release
+    - meson build --buildtype=release -Db_coverage=true
     - ninja -C build
     - meson test -C build
     - meson dist -C build
+    - ninja coverage -C build
+  artifacts:
+    expire_in: '1 week'
+    paths:
+      - build/meson-logs/
 
 .ubuntu:
   image: ubuntu:latest
@@ -127,9 +132,9 @@ Fedora csbuild:
 pages:
   stage: deploy
   dependencies:
-    - Fedora build and check
+    - Fedora meson
   script:
-    - mv *-coverage/ public/
+    - mv build/meson-logs/coveragereport/ public/
   artifacts:
     paths:
       - public

@@ -201,10 +201,12 @@ vcard_emul_map_error(int error)
     case SEC_ERROR_NO_KEY:
     case SEC_ERROR_INVALID_KEY:
     case SEC_ERROR_DECRYPTION_DISALLOWED:
+    case SEC_ERROR_PKCS11_GENERAL_ERROR:
         return VCARD7816_STATUS_ERROR_DATA_INVALID;
     case SEC_ERROR_NO_MEMORY:
         return VCARD7816_STATUS_EXC_ERROR_MEMORY_FAILURE;
     default:
+        g_debug("error %x", 0x2000 + error);
         g_warn_if_reached();
     }
     return VCARD7816_STATUS_EXC_ERROR_CHANGE;
@@ -343,15 +345,21 @@ vcard_emul_rsa_op(VCard *card, VCardKey *key,
             key->failedX509 = VCardEmulTrue;
             goto cleanup;
         }
-    } else {
-        /* We can not do raw RSA operation, nor the data looks like PKCS#1.5
-         * bail out.
-         */
-        ret = VCARD7816_STATUS_ERROR_DATA_INVALID;
+    }
+    /* We can not do raw RSA operation and the bytes do not look like PKCS#1.5
+     * Assuming it is deciphering operation.
+     */
+    rv = PK11_PrivDecryptPKCS1(priv_key, bp, &signature_len, buffer_size, buffer, buffer_size);
+    if (rv != SECSuccess) {
+        /* The assumption was wrong. Give up */
+        ret = vcard_emul_map_error(PORT_GetError());
         goto cleanup;
     }
     pad_len = buffer_size - signature_len;
-    assert(pad_len < 4);
+    if (pad_len < 4) {
+        ret = VCARD7816_STATUS_ERROR_GENERAL;
+        goto cleanup;
+    }
     /*
      * OK now we've decrypted the payload, package it up in PKCS #1 for the
      * upper layer.

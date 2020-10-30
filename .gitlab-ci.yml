@@ -16,6 +16,8 @@ Fedora meson:
     when: always
     paths:
       - build/meson-logs/
+    reports:
+      junit: build/meson-logs/testlog.junit.xml
 
 .ubuntu:
   image: ubuntu:latest

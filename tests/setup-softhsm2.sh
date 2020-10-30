@@ -53,6 +53,11 @@ generate_cert() {
 	pkcs11-tool --write-object "$TYPE.cert.der" --type=cert --id=$ID \
 		--label="$LABEL" --module="$P11LIB"
 
+	# Encrypt some data using the public key (its pain to do it in the tests)
+	echo "1234567890" > data
+	openssl rsautl -encrypt -inkey "$TYPE.cert" -certin -in data -out "$ID.crypt"
+	rm data
+
 	rm "$TYPE.cert" "$TYPE.cert.der"
 
 	p11tool --login --provider="$P11LIB" --list-all

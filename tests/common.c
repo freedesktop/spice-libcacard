@@ -562,6 +562,87 @@ void do_sign(VReader *reader, int parts)
 
 }
 
+void do_decipher(VReader *reader)
+{
+    VReaderStatus status;
+    int dwRecvLength = APDUBufSize;
+    uint8_t pbRecvBuffer[APDUBufSize];
+    uint8_t apdu[7 + 256] = {
+        /* DECRYPT  [p1,p2=0 ]  [Lc            ] */
+        0x80, 0x42, 0x00, 0x00, 0x00, 0x01, 0x00,
+        /* [2048b keys: 256 bytes of encrypted data to be filled by the following code ] */
+    };
+    int apdu_len = sizeof(apdu);
+    uint8_t getresp[] = {
+        /* Get Response (max we can get) */
+        0x00, 0xc0, 0x00, 0x00, 0x00
+    };
+    uint8_t cleartext[] = "1234567890\n";
+    int cleartext_len = sizeof(cleartext) - 1;
+    gchar *filename = NULL;
+    gchar *ciphertext = NULL;
+    gsize ciphertext_len = 0;
+    g_assert_nonnull(reader);
+
+    /* To decipher, we need some sensible data encrypted using public key
+     * (done in setup-softhsm.sh) */
+
+    /* Read the encrypted file */
+    if (hw_tests) {
+        filename = g_test_build_filename(G_TEST_BUILT, "01.crypt", NULL);
+    } else {
+        /* Generated from existing db using:
+         * echo "1234567890" > data
+         * certutil -L -d sql:$PWD/tests/db/ -n cert1 -r > tests/db.cert
+         * openssl rsautl -encrypt -inkey "tests/db.cert" -keyform DER -certin -in data -out "tests/db.crypt"
+         */
+        filename = g_test_build_filename(G_TEST_DIST, "db.crypt", NULL);
+    }
+    if (!g_file_get_contents(filename, &ciphertext, &ciphertext_len, NULL)) {
+        g_test_skip("The encrypted file not found");
+        g_free(filename);
+        return;
+    }
+    g_free(filename);
+
+    /* Adjust the place where to store the read ciphertext */
+    if (key_bits && key_bits < 2048) {
+        apdu[4] = key_bits/8; /* less than 2048b will fit the length into one byte */
+        apdu_len = 5 + key_bits/8;
+        memcpy(&apdu[5], ciphertext, ciphertext_len);
+    } else {
+        /* This might be an issue for even larger keys than 2k */
+        assert(ciphertext_len < (size_t) apdu_len + 7);
+        memcpy(&apdu[7], ciphertext, ciphertext_len);
+    }
+    g_free(ciphertext);
+
+    dwRecvLength = APDUBufSize;
+    status = vreader_xfr_bytes(reader,
+                               apdu, apdu_len,
+                               pbRecvBuffer, &dwRecvLength);
+    g_assert_cmpint(status, ==, VREADER_OK);
+    g_assert_cmphex(pbRecvBuffer[dwRecvLength-2], ==, VCARD7816_SW1_RESPONSE_BYTES);
+    g_assert_cmphex(pbRecvBuffer[dwRecvLength-1], ==, (unsigned char) (key_bits/8));
+
+    /* fetch the actual response */
+    dwRecvLength = APDUBufSize;
+    status = vreader_xfr_bytes(reader,
+                               getresp, sizeof(getresp),
+                               pbRecvBuffer, &dwRecvLength);
+    g_assert_cmpint(status, ==, VREADER_OK);
+    g_assert_cmpint(dwRecvLength, ==, key_bits/8+2);
+    g_assert_cmphex(pbRecvBuffer[dwRecvLength-2], ==, VCARD7816_SW1_SUCCESS);
+    g_assert_cmphex(pbRecvBuffer[dwRecvLength-1], ==, 0x00);
+    /* Compare the actual deciphered data */
+    g_assert_cmphex(pbRecvBuffer[0], ==, 0x00); /* Padding bytes */
+    g_assert_cmphex(pbRecvBuffer[1], ==, 0x02);
+    g_assert_cmphex(pbRecvBuffer[dwRecvLength - 2 - cleartext_len - 1], ==, 0x00);
+    g_assert_cmpmem(&pbRecvBuffer[dwRecvLength - 2 - cleartext_len], cleartext_len,
+                    cleartext, cleartext_len);
+
+}
+
 void test_empty_applets(void)
 {
     uint8_t applet_02fb[] = {

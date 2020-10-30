@@ -40,6 +40,8 @@ void read_buffer(VReader *reader, uint8_t type, int object_type);
 
 void do_sign(VReader *reader, int parts);
 
+void do_decipher(VReader *reader);
+
 void test_empty_applets(void);
 
 void test_get_response(void);

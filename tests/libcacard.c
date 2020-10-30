@@ -582,6 +582,23 @@ static void test_sign(void)
     vreader_free(reader); /* get by id ref */
 }
 
+static void test_decipher(void)
+{
+    VReader *reader = vreader_get_reader_by_id(0);
+
+    /* select the ACA */
+    select_applet(reader, TEST_ACA);
+
+    do_login(reader);
+
+    /* select the PKI */
+    select_applet(reader, TEST_PKI);
+
+    do_decipher(reader);
+
+    vreader_free(reader); /* get by id ref */
+}
+
 static void test_remove(void)
 {
     VReader *reader = vreader_get_reader_by_id(0);
@@ -1111,6 +1128,7 @@ int main(int argc, char *argv[])
     g_test_add_func("/libcacard/check-login-count", check_login_count);
     g_test_add_func("/libcacard/login", test_login);
     g_test_add_func("/libcacard/sign", test_sign);
+    g_test_add_func("/libcacard/decipher", test_decipher);
     g_test_add_func("/libcacard/empty-applets", test_empty_applets);
     g_test_add_func("/libcacard/gp-applet", test_gp_applet);
     g_test_add_func("/libcacard/msft-applet", test_msft_applet);

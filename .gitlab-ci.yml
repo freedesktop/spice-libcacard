@@ -13,6 +13,7 @@ Fedora meson:
     - ninja coverage -C build
   artifacts:
     expire_in: '1 week'
+    when: always
     paths:
       - build/meson-logs/
 
@@ -52,6 +53,7 @@ CentOS 7 build and check:
     - make dist
   artifacts:
     expire_in: '1 week'
+    when: always
     paths:
       - test-suite.log
 
@@ -64,6 +66,7 @@ Ubuntu build and check:
     - make dist
   artifacts:
     expire_in: '1 week'
+    when: always
     paths:
       - test-suite.log
 
@@ -83,6 +86,7 @@ Fedora build and check:
     - make dist
   artifacts:
     expire_in: '1 week'
+    when: always
     paths:
       - test-suite.log
       - libcacard-*-coverage
@@ -104,6 +108,7 @@ Fedora asan:
     - make CFLAGS="-fsanitize=address" check || (cat test-suite.log && exit 1)
   artifacts:
     expire_in: '1 week'
+    when: always
     paths:
       - test-suite.log
 
@@ -116,6 +121,7 @@ Fedora clang:
     - make
   artifacts:
     expire_in: '1 week'
+    when: always
     paths:
       - test-suite.log
   allow_failure: true
@@ -136,8 +142,9 @@ pages:
   script:
     - mv build/meson-logs/coveragereport/ public/
   artifacts:
+    expire_in: 30 days
+    when: always
     paths:
       - public
-    expire_in: 30 days
   only:
     - master

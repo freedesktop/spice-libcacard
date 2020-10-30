@@ -269,7 +269,7 @@ static void test_sign_bad_data_x509(void)
     int dwRecvLength = APDUBufSize;
     uint8_t pbRecvBuffer[APDUBufSize];
     uint8_t sign[] = {
-        /* VERIFY   [p1,p2=0 ]  [Lc            ] [2048b keys: 256 bytes of non PKCS#1.5 data] */
+        /* SIGN     [p1,p2=0 ]  [Lc            ] [2048b keys: 256 bytes of non PKCS#1.5 data] */
         0x80, 0x42, 0x00, 0x00, 0x00, 0x01, 0x00,
 0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
 /*      ^--- the second byte of data should be 0x01 for signatures */

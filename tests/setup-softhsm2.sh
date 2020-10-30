@@ -106,7 +106,7 @@ if [ ! -d "tokens" ]; then
 
 	# Generate 1024b RSA Key pair
 	generate_cert "RSA:1024" "01" "RSA_auth"
-	generate_cert "RSA:1024" "02" "RSA_sign"
+	#generate_cert "RSA:1024" "02" "RSA_sign"
 fi
 # NSS DB
 if [ ! -d "$NSSDB" ]; then

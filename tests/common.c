@@ -333,7 +333,7 @@ void get_properties(VReader *reader, int object_type)
 
 void read_buffer(VReader *reader, uint8_t type, int object_type)
 {
-    int dwRecvLength = APDUBufSize, dwLength, dwReadLength, offset;
+    int dwRecvLength = APDUBufSize, dwLength, dwReadLength, offset, left;
     VReaderStatus status;
     uint8_t pbRecvBuffer[APDUBufSize];
     uint8_t *data;
@@ -359,8 +359,9 @@ void read_buffer(VReader *reader, uint8_t type, int object_type)
 
     data = g_malloc(dwLength);
     offset = 0x02;
+    left = dwLength;
     do {
-        dwReadLength = MIN(255, dwLength);
+        dwReadLength = MIN(255, left);
         dwRecvLength = dwReadLength+2;
         read_buffer[2] = (unsigned char) ((offset >> 8) & 0xff);
         read_buffer[3] = (unsigned char) (offset & 0xff);
@@ -375,9 +376,9 @@ void read_buffer(VReader *reader, uint8_t type, int object_type)
         g_assert_cmphex(pbRecvBuffer[dwRecvLength-1], ==, 0x00);
 
         memcpy(data + offset - 2, pbRecvBuffer, dwReadLength);
-        offset += dwLength;
-        dwLength -= dwReadLength;
-    } while (dwLength != 0);
+        offset += dwReadLength;
+        left -= dwReadLength;
+    } while (left != 0);
 
     /* Try to parse the TAG buffer, if it makes sense */
     if (type == CAC_FILE_TAG) {

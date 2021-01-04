@@ -1,1 +1,2 @@
 leak:OPENSSL_init_crypto
+leak:SECMOD_LoadModule

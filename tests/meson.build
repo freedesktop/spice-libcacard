@@ -11,15 +11,6 @@ modutil_dep = find_program('modutil', required: false)
 openssl_dep = find_program('openssl', required: false)
 softhsm_util_dep = find_program('softhsm2-util', required: false)
 
-if pkcs11_tool_dep.found() and p11tool_dep.found() and modutil_dep.found() and openssl_dep.found() and softhsm_util_dep.found()
-  softhsm = custom_target(
-    'softhsm2.conf',
-    command: find_program('setup-softhsm2.sh'),
-    capture: true,
-    output: 'setup-softhsm2.log',
-  )
-endif
-
 libcacard_test = executable(
   'libcacard',
   ['libcacard.c', 'common.c'],
@@ -66,17 +57,26 @@ hwtests_test = executable(
   dependencies: [libcacard_dep],
 )
 
-test(
-  'hwtests',
-  hwtests_test,
-  depends: [softhsm],
-  env: env,
-)
+if pkcs11_tool_dep.found() and p11tool_dep.found() and modutil_dep.found() and openssl_dep.found() and softhsm_util_dep.found()
+  softhsm = custom_target(
+    'softhsm2.conf',
+    command: find_program('setup-softhsm2.sh'),
+    capture: true,
+    output: 'setup-softhsm2.log',
+  )
 
-# again with different softhsm configuration not allowing raw RSA signatures */
-test(
-  'hwtests_no_raw',
-  hwtests_test,
-  depends: [softhsm],
-  env: env2,
-)
+  test(
+    'hwtests',
+    hwtests_test,
+    depends: [softhsm],
+    env: env,
+  )
+
+  # again with different softhsm configuration not allowing raw RSA signatures */
+  test(
+    'hwtests_no_raw',
+    hwtests_test,
+    depends: [softhsm],
+    env: env2,
+  )
+endif
